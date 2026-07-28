@@ -1,0 +1,22 @@
+from sqlalchemy import String, Integer, DateTime, Boolean
+from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+
+from models.base import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    login_name: Mapped[str] = mapped_column(String(30), nullable = False, unique = True)
+
+    email: Mapped[str] = mapped_column(String(255), nullable = False, unique = True)
+
+    password_hash: Mapped[str] = mapped_column(nullable = False, unique = True)
+
+    verified: Mapped[bool] = mapped_column(Boolean, nullable = False, unique = False, default = False)
+
+    date_added: Mapped[datetime] = mapped_column(DateTime)
+
+
