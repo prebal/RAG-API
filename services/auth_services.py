@@ -1,11 +1,14 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 
 from security.password_hashing import hash_password, verify_password
+from security.jwt_tokens import issue_jwt_token
 from schemas.auth_schema import RegisterRequest, LoginRequest
 from models.auth_models import User
 from repositories.auth_repository import UserRepository
+
+
 
 class UserService:
     def __init__(self, repository: UserRepository) -> None:
@@ -28,7 +31,7 @@ class UserService:
                 email = register_request.email,
                 password_hash = hashed_password,
                 verified = False,
-                date_added = datetime.now()
+                date_added = datetime.now(timezone.utc)
                 )
 
         self.repository.create_user(new_user, db)
@@ -41,8 +44,8 @@ class UserService:
         if not queried_user:
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
 
-        elif not verify_password(login_request.password, queried_user.password_hash):
+        if not verify_password(login_request.password, queried_user.password_hash):
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
-
-        return {"message": f"user {queried_user.login_name} has successfully logged in"}
+       
+        return issue_jwt_token(queried_user.id)
 

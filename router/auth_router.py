@@ -1,6 +1,6 @@
 from services.auth_services import UserService
 from repositories.auth_repository import UserRepository
-from schemas.auth_schema import RegisterRequest, LoginRequest
+from schemas.auth_schema import RegisterRequest, LoginRequest, LoginTokenResponse
 from database import get_db
 
 from fastapi import APIRouter, Depends
@@ -24,6 +24,11 @@ def login(
         request: LoginRequest,
         db: Session = Depends(get_db)):
 
-    return service.login_user(request, db)
+    issued_jwt_token = service.login_user(request, db)
+
+    return LoginTokenResponse(
+        token = issued_jwt_token,
+        token_type = "bearer"
+            )
 
     
