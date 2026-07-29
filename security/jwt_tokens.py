@@ -1,14 +1,16 @@
 import jwt
+from fastapi import HTTPException
 import os
 from dotenv import load_dotenv
-from datemtime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+from typing import Dict
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY") 
 ALGORITHM = os.getenv("ALGO")
 
-def issue_jwt_token(user_id: int, time_window: int = 30):
-    expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+def issue_jwt_token(user_id: int, time_window: int = 30) -> str:
+    expires = datetime.now(timezone.utc) + timedelta(minutes=time_window)
     payload =  {
         "sub": str(user_id),
         "exp": expires,
@@ -16,6 +18,14 @@ def issue_jwt_token(user_id: int, time_window: int = 30):
 
     return jwt.encode(payload, key = SECRET_KEY, algorithm = ALGORITHM)
 
-def decode_verify_jwt_token():
-    pass
+def decode_jwt_token(token: str) -> Dict[str, str]:
+    try:
+        return jwt.decode(token, SECRET_KEY, ALGORITHM)
 
+    except jwt.exceptions.InvalidTokenError:
+        raise HTTPException(status=401, detail = "Token is invalid")
+
+    except jwt.exceptions.ExpiredSignatureError:
+        raise HTTPException(status=401, detail = "Token is expired")
+    
+    

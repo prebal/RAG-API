@@ -9,8 +9,12 @@ class UserRepository():
         return db.scalar(db_query)
         
     def request_user_by_name(self, name_to_check: str, db: Session) -> Union[User, None]:
-        db_query = select(User).where(User.login_name == name_to_check)
+        db_query = select(User).where(User.username == name_to_check)
         return db.scalar(db_query)
+
+    def request_user_by_id(self, id_to_check: Union[str, int], db: Session) -> Union[User, None]:
+        db_query = select(User).where(User.id == id_to_check)
+        return db_query
 
     def create_user(self, new_user: User, db: Session) -> None:
         db.add(new_user)

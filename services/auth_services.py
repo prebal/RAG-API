@@ -16,7 +16,7 @@ class UserService:
 
     def register_user(self, register_request: RegisterRequest, db: Session) -> None:
 
-        if self.repository.request_user_by_name(register_request.login_name, db):
+        if self.repository.request_user_by_name(register_request.username, db):
             # TODO: This function returns either None or User. Make some logic around it for validation later 
             raise Error()
 
@@ -27,7 +27,7 @@ class UserService:
 
 
         new_user = User(
-                login_name = register_request.login_name,
+                username = register_request.username,
                 email = register_request.email,
                 password_hash = hashed_password,
                 verified = False,
@@ -37,9 +37,9 @@ class UserService:
         self.repository.create_user(new_user, db)
 
         
-    def login_user(self, login_request: LoginRequest, db: Session) -> None:
+    def login_user(self, login_request: LoginRequest, db: Session) -> str:
 
-        queried_user = self.repository.request_user_by_name(login_request.login_name, db)
+        queried_user = self.repository.request_user_by_name(login_request.username, db)
             
         if not queried_user:
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
@@ -48,4 +48,5 @@ class UserService:
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
        
         return issue_jwt_token(queried_user.id)
+
 

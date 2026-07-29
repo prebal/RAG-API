@@ -4,6 +4,7 @@ from schemas.auth_schema import RegisterRequest, LoginRequest, LoginTokenRespons
 from database import get_db
 
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix = "/auth")
@@ -21,13 +22,13 @@ def register(
 
 @router.post("/login")
 def login(
-        request: LoginRequest,
+        request: OAuth2PasswordRequestForm = Depends(),
         db: Session = Depends(get_db)):
 
     issued_jwt_token = service.login_user(request, db)
 
     return LoginTokenResponse(
-        token = issued_jwt_token,
+        access_token = issued_jwt_token,
         token_type = "bearer"
             )
 
