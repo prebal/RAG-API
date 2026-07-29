@@ -1,0 +1,26 @@
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException
+
+from security.jwt_tokens import decode_jwt_token
+from repositories.auth_repository import UserRepository
+from database import get_db
+
+oauth2_token_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+def get_current_user(
+        token: str = Depends(oauth2_token_scheme),
+        db: Session = Depends(get_db)
+        ):
+    decoded_jwt_token = decode_token(token)
+    
+    if not decoded_jwt_token["sub"]:
+       raise HTTPException(401, "Invalid validation token. Please login again")
+    
+    queried_user = UserRepository().request_user_by_id(int(decoded_jwt_token["sub"]))
+    
+    if not queried_user:
+        raise HTTPException(401, "Invalid user")
+
+
+    return queried_user
+
