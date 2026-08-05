@@ -33,7 +33,7 @@ class DocumentService:
             filepath = full_destination 
                 )
 
-        self.repository.store_document(document_to_write)
+        self.repository.store_document(document_to_write, db)
 
     def delete_document_entry():
 

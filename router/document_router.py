@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, UploadFile
+import uuid
 
 
 from services.document_services import DocumentService
@@ -18,8 +19,8 @@ def add_document(
         uploaded_file: UploadFile
         ) -> Dict[str, str]:
 
-
     full_destination = storage_service.save_file(uploaded_file, destination)
+    if fu
     document_service.store_document_in_database(current_user, uploaded_file, full_destination, db)
     
     return {"message": "Document was added successfully"}
