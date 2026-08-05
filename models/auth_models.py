@@ -1,5 +1,5 @@
 from sqlalchemy import String, Integer, DateTime, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
 from models.base import Base
@@ -9,7 +9,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     
-    documents = relationship("Document", backpopulate="document_owner")
+    documents = relationship("Document", back_populates="document_owner")
 
     username: Mapped[str] = mapped_column(String(30), nullable = False, unique = True)
 

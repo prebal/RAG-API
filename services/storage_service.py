@@ -2,6 +2,7 @@ from fastapi import UploadFile
 from models.document_model import Document
 import aiofiles
 import uuid
+import os
 
 CHUNKSIZE=1024*1024
 LOCAL_STORAGE_PATH = "storage/"
@@ -15,5 +16,5 @@ class StorageService:
 
         return full_destination
 
-    def delete_file(self, file_to_delete: Document) -> None
-        pass
+    def delete_file(self, file_to_delete: str) -> None
+        os.delete(file_to_delete)

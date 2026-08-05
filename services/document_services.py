@@ -15,7 +15,7 @@ class DocumentService:
         self.repository = repository
 
     def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, str]:
-        
+       pass 
 
     def store_document_entry(self, 
                             user: User
@@ -24,17 +24,19 @@ class DocumentService:
                             db: Session
                             ) -> None:
 
-        document_metadata = self.extract_metadata(uploaded_file)
+        #document_metadata = self.extract_metadata(uploaded_file)
         
         document_to_write = Document(
             document_owner_id = user.id,
-            document_type = saved_file_extension,
+            document_owner = user,
+            document_type = "text",
             uploaded = datetime.now(timezone.utc)
             filepath = full_destination 
                 )
 
         self.repository.store_document(document_to_write, db)
 
-    def delete_document_entry():
-
+    def remove_document(self, document_id: int, user_id: int, db: Session):
+        return self.repository.delete_document(document_id, user_id, db)
+        
 

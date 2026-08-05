@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from models.auth_models import User
+from models.document_model import Document
 from dotenv import load_dotenv
 import os
 
