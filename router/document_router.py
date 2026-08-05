@@ -20,7 +20,8 @@ def add_document(
         ) -> Dict[str, str]:
 
     full_destination = storage_service.save_file(uploaded_file, destination)
-    if fu
+    if full_destionation is None:
+        raise HTTPException("500", "Internal server error occured when writing file")
     document_service.store_document_in_database(current_user, uploaded_file, full_destination, db)
     
     return {"message": "Document was added successfully"}
