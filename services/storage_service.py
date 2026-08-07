@@ -8,7 +8,8 @@ CHUNKSIZE=1024*1024
 LOCAL_STORAGE_PATH = "storage/"
 
 class StorageService:
-    async def save_file(self, uploaded_file: UploadFile, destination: str) -> None:
+    async def save_document_storage(self, uploaded_file: UploadFile) -> None:
+
         full_destination = LOCAL_STORAGE_PATH + str(uuid.uuid4())
         async with aiofiles.open(full_destination, "wb") as saved_file:
             while chunk := await uploaded_file.read(CHUNKSIZE):
@@ -16,5 +17,5 @@ class StorageService:
 
         return full_destination
 
-    def delete_file(self, file_to_delete: str) -> None
-        os.delete(file_to_delete)
+    def remove_document_storage(self, file_to_delete: str) -> None:
+        os.remove(file_to_delete)

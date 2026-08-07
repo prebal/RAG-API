@@ -3,6 +3,8 @@ from sqlalchemy import select
 from models.auth_models import User
 from typing import Union
 
+# execute all these
+
 class UserRepository():
     def request_user_by_email(self, email_to_check: str, db: Session) -> Union[User, None]:
         db_query = select(User).where(User.email == email_to_check)
@@ -14,7 +16,7 @@ class UserRepository():
 
     def request_user_by_id(self, id_to_check: Union[str, int], db: Session) -> Union[User, None]:
         db_query = select(User).where(User.id == id_to_check)
-        return db_query
+        return db.scalar(db_query)
 
     def create_user(self, new_user: User, db: Session) -> None:
         db.add(new_user)
