@@ -41,7 +41,7 @@ class UserService:
 
         queried_user = self.repository.request_user_by_name(login_request.username, db)
             
-        if not queried_user:
+        if queried_user is None:
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
 
         if not verify_password(login_request.password, queried_user.password_hash):
@@ -49,4 +49,19 @@ class UserService:
        
         return issue_jwt_token(queried_user.id)
 
+    def check_and_change_username(self, current_user: User, username_change_request: ChangeUsernameRequest, db: Session) -> Union[User, None]:
+        
+        if not verify_password(username_change_request.password, current_user.password_hash):
+            raise HTTPException(status_code = 401, detail="Incorrect login or password")
 
+        return self.repository.change_username(current_user, username_change_request.new_username, db)
+
+    def check_and_change_password(self, current_user: User, password_change_request: ChangePasswordRequest, db: Session) -> Union[User, None]:
+
+
+        if not verify_password(password_change_request.password, current_user.password_hash):
+            raise HTTPException(status_code = 401, detail="Incorrect login or password")
+
+        new_password_hash = hash_password(password_change_request.password)
+        
+        return self.repository.change_password(current_user, new_password_hash, db)
