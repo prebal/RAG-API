@@ -1,20 +1,16 @@
-from datetime import datetime, timezone
-from typing import Dict
-
-from fastapi import HTTPException, UploadFile
-from sqlalchemy.orm import Session
+from datetime import UTC, datetime
 
 from app.models.auth_model import User
 from app.models.document_model import Document
-from app.repositories.document_repository import DocumentRepository
-from app.schemas.document_schema import DeleteDocumentRequest
+from fastapi import UploadFile
+from sqlalchemy.orm import Session
 
 
 class DocumentService:
     def __init__(self, repository):
         self.repository = repository
 
-    def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, str]:
+    def extract_metadata(self, uploaded_file: UploadFile) -> dict[str, str]:
        pass 
 
     def save_document_db(self, 
@@ -30,7 +26,7 @@ class DocumentService:
             document_owner_id = user.id,
             document_owner = user,
             document_type = "text",
-            uploaded = datetime.now(timezone.utc),
+            uploaded = datetime.now(UTC),
             filepath = full_destination 
                 )
 

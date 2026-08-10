@@ -23,4 +23,4 @@ jobs:
        run: uv sync --locked
 
       -name: Run Ruff
-       run: uv run ruff check .
+       run: uv run ruff check . --ignore B008

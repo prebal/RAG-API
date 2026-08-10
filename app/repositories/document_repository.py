@@ -1,14 +1,12 @@
-from typing import Union
 
+from app.models.document_model import Document
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.document_model import Document
 
-
-class DocumentRepository():
-    def get_document(self, document_id: int, user_id: int, db: Session) -> Union[Document, None]:
+class DocumentRepository:
+    def get_document(self, document_id: int, user_id: int, db: Session) -> Document | None:
         query = select(Document).where(Document.id == document_id, Document.document_owner_id == user_id)
         return db.scalar(query)
 

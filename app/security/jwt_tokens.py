@@ -1,6 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Dict
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from dotenv import load_dotenv
@@ -12,7 +11,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGO")
 
 def issue_jwt_token(user_id: int, time_window: int = 30) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(minutes=time_window)
+    expires = datetime.now(UTC) + timedelta(minutes=time_window)
     payload =  {
         "sub": str(user_id),
         "exp": expires,
@@ -20,7 +19,7 @@ def issue_jwt_token(user_id: int, time_window: int = 30) -> str:
 
     return jwt.encode(payload, key = SECRET_KEY, algorithm = ALGORITHM)
 
-def decode_jwt_token(token: str) -> Dict[str, str]:
+def decode_jwt_token(token: str) -> dict[str, str]:
     try:
         return jwt.decode(token, SECRET_KEY, ALGORITHM)
 

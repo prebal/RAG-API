@@ -1,6 +1,4 @@
-from typing import Union
 
-import argon2
 from argon2 import PasswordHasher
 
 hasher = PasswordHasher()
