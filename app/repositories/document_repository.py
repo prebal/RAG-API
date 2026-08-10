@@ -1,8 +1,9 @@
 
-from app.models.document_model import Document
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from app.models.document_model import Document
 
 
 class DocumentRepository:

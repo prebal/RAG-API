@@ -1,13 +1,14 @@
 from typing import dict
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.auth_model import User
 from app.repositories.auth_repository import UserRepository
 from app.schemas.user_schema import ChangePasswordRequest, ChangeUsernameRequest
 from app.services.auth_services import UserService
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
 user_router = APIRouter(prefix="/user")
 auth_repository = UserRepository()

@@ -23,9 +23,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Metadata added here
-from app.models.auth_model import User
 from app.models.base import Base
-from app.models.document_model import Document
 
 target_metadata = Base.metadata
 

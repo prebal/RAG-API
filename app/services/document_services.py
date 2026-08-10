@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
 
-from app.models.auth_model import User
-from app.models.document_model import Document
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
+
+from app.models.auth_model import User
+from app.models.document_model import Document
 
 
 class DocumentService:

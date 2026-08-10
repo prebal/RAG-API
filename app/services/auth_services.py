@@ -1,14 +1,15 @@
 from datetime import UTC, datetime
 
+from argon2.exceptions import VerifyMismatchError
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
 from app.models.auth_model import User
 from app.repositories.auth_repository import UserRepository
 from app.schemas.auth_schema import LoginRequest, RegisterRequest
 from app.schemas.user_schema import ChangePasswordRequest, ChangeUsernameRequest
 from app.security.jwt_tokens import issue_jwt_token
 from app.security.password_hashing import hash_password, verify_password
-from argon2.exceptions import VerifyMismatchError
-from fastapi import HTTPException
-from sqlalchemy.orm import Session
 
 
 class UserService:

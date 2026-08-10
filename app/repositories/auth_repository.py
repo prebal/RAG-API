@@ -1,7 +1,8 @@
 
-from app.models.auth_model import User
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+from app.models.auth_model import User
 
 
 class UserRepository:
