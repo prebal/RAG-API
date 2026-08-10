@@ -1,0 +1,26 @@
+name: Ruff
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ruff:
+    name: Lint checker using Ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      -name: Checkout repository
+       uses: actions/checkout@v4
+
+      -name: uv setup
+       uses: astral-sh/setup-ev@v6
+
+      -name: Install python
+       run: uv python install 3.14
+
+      -name: Sync packages
+       run: uv sync --locked
+
+      -name: Run Ruff
+       run: uv run ruff check .

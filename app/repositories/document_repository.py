@@ -1,8 +1,11 @@
+from typing import Union
+
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from models.document_model import Document
-from typing import Union
-from fastapi import HTTPException
+
+from app.models.document_model import Document
+
 
 class DocumentRepository():
     def get_document(self, document_id: int, user_id: int, db: Session) -> Union[Document, None]:

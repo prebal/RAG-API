@@ -1,9 +1,11 @@
-from sqlalchemy import String, Integer, DateTime, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 
-from models.base import Base
-from models.auth_models import User
+from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.auth_model import User
+from app.models.base import Base
+
 
 class Document(Base):
     __tablename__ = "documents"

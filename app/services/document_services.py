@@ -1,12 +1,13 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, UploadFile
 from datetime import datetime, timezone
 from typing import Dict
 
-from models.auth_models import User
-from models.document_model import Document
-from schemas.document_schema import DeleteDocumentRequest
-from repositories.document_repository import DocumentRepository
+from fastapi import HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
+from app.models.auth_model import User
+from app.models.document_model import Document
+from app.repositories.document_repository import DocumentRepository
+from app.schemas.document_schema import DeleteDocumentRequest
 
 
 class DocumentService:

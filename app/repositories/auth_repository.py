@@ -1,7 +1,10 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from models.auth_models import User
 from typing import Union
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models.auth_model import User
+
 
 class UserRepository():
     def request_user_by_email(self, 
@@ -43,7 +46,7 @@ class UserRepository():
                         db: Session
                         ) -> Union[User, None]:
 
-        entry_to_modify.username = new_username
+        current_user.username = new_username
         db.commit()
 
         return current_user

@@ -1,13 +1,14 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException
 from datetime import datetime, timezone
 
-from security.password_hashing import hash_password, verify_password
-from security.jwt_tokens import issue_jwt_token
-from schemas.auth_schema import RegisterRequest, LoginRequest
-from models.auth_models import User
-from repositories.auth_repository import UserRepository
+from argon2.exceptions import VerifyMismatchError
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
+from app.models.auth_model import User
+from app.repositories.auth_repository import UserRepository
+from app.schemas.auth_schema import LoginRequest, RegisterRequest
+from app.security.jwt_tokens import issue_jwt_token
+from app.security.password_hashing import hash_password, verify_password
 
 
 class UserService:
@@ -54,14 +55,24 @@ class UserService:
         if not verify_password(username_change_request.password, current_user.password_hash):
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
 
+        if current_user.username == username_change_request.new_username:
+            raise HTTPException(status_code = 422, detail="Old and new usernames are identical")
+
         return self.repository.change_username(current_user, username_change_request.new_username, db)
 
     def check_and_change_password(self, current_user: User, password_change_request: ChangePasswordRequest, db: Session) -> Union[User, None]:
 
 
-        if not verify_password(password_change_request.password, current_user.password_hash):
+        if not verify_password(password_change_request.old_password, current_user.password_hash):
             raise HTTPException(status_code = 401, detail="Incorrect login or password")
 
-        new_password_hash = hash_password(password_change_request.password)
+        try:
+            verify_password(password_change_request.new_password, current_user.password_hash)
+        except VerifyMismatchError:
+            pass
+        else:
+            raise HTTPException(status_code=422, detail="Old and new passwords are identical")
+
+        new_password_hash = hash_password(password_change_request.new_password)
         
         return self.repository.change_password(current_user, new_password_hash, db)

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field()
     new_password: str = Field()

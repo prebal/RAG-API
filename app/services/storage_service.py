@@ -1,8 +1,10 @@
-from fastapi import UploadFile
-from models.document_model import Document
-import aiofiles
-import uuid
 import os
+import uuid
+
+import aiofiles
+from fastapi import UploadFile
+
+from app.models.document_model import Document
 
 CHUNKSIZE=1024*1024
 LOCAL_STORAGE_PATH = "storage/"

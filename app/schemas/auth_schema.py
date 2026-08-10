@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class LoginRequest(BaseModel):
     username: str = Field(default = None, max_lenght = 50)
     password: str = Field(default = None, max_length = 100)

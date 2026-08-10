@@ -1,8 +1,10 @@
-from sqlalchemy import String, Integer, DateTime, Boolean
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
-from models.base import Base
+from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.base import Base
+
 
 class User(Base):
     __tablename__ = "users"

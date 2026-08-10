@@ -1,9 +1,9 @@
-from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 
-from security.jwt_tokens import decode_jwt_token
-from repositories.auth_repository import UserRepository
-from database import get_db
+from app.database import get_db
+from app.repositories.auth_repository import UserRepository
+from app.security.jwt_tokens import decode_jwt_token
 
 oauth2_token_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 

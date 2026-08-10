@@ -1,11 +1,11 @@
-from services.auth_services import UserService
-from repositories.auth_repository import UserRepository
-from schemas.auth_schema import RegisterRequest, LoginRequest, LoginTokenResponse
-from database import get_db
-
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.repositories.auth_repository import UserRepository
+from app.schemas.auth_schema import LoginRequest, LoginTokenResponse, RegisterRequest
+from app.services.auth_services import UserService
 
 router = APIRouter(prefix = "/auth")
 repository = UserRepository()
