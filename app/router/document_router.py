@@ -1,5 +1,4 @@
-
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, UploadFile
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -10,8 +9,8 @@ from app.services.storage_service import StorageService
 
 document_router = APIRouter(prefix="/documents")
 document_repository = DocumentRepository()
-document_service = DocumentService(document_repository)
 storage_service = StorageService()
+document_service = DocumentService(document_repository, storage_service)
 
 
 @document_router.post("/upload_document")
@@ -21,11 +20,7 @@ async def add_document(
     db=Depends(get_db),
 ) -> dict[str, str]:
 
-    full_destination = await storage_service.save_document_storage(uploaded_file)
-    if full_destination is None:
-        raise HTTPException("500", "Internal server error occured while writing file")
-    document_service.save_document_db(current_user, uploaded_file, full_destination, db)
-
+    document_service.process_document(current_user, uploaded_file, db)
     return {"message": "Document was added successfully"}
 
 
@@ -34,9 +29,7 @@ def delete_document(
     request: DeleteDocumentRequest,
     current_user=Depends(get_current_user),
     db=Depends(get_db),
-) -> None:
+) -> dict[str, str]:
 
-    document_filepath = document_service.remove_document_db(
-        request.document_id, current_user.id, db
-    )
-    storage_service.remove_document_storage(document_filepath)
+    document_service.save_document_storage(request.document_id, current_user.id, db)
+    return {"message": "Document was successfully removed"}
