@@ -18,12 +18,23 @@ class DocumentProcessor:
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         markdown_file = pymupdf4llm.to_markdown(doc = pdf_filepath, page_chunks = True)
         
+        buffer = []
         for page in markdown_file:
             page_text = page.get("text", "")
             page_metadata = page.get("metadata", "")
 
-            tokenized_page = tokenizer(page_text)
+            tokenized_page = tokenizer(page_text).get(input_ids)
 
-            
+            n_tokens_on_page = len(tokenized_page)
 
-            while 
+            for token in tokenized_page:
+                buffer.append(token)
+                if len(buffer) == chunk_size:
+                    yield buffer
+
+                    buffer = buffer[-chunk_overlap:]
+
+        if buffer:
+            yield buffer
+
+    def process_embed_document(self, ):
