@@ -21,7 +21,7 @@ class EmbeddingService:
             list[bool] | torch.Tensor,  # Attention mask
         ],
     ) -> list[float] | torch.Tensor:
-        pass
+        return self.embed_token_input(text_chunk)
 
     def embed_chunk_batch(
         self,
@@ -29,7 +29,7 @@ class EmbeddingService:
             dict[
                 list[int] | torch.Tensor,  # Tokens
                 list[bool] | torch.Tensor,  # Attention masks
-            ]  #
+            ]
         ],
     ) -> list[list[float]] | torch.Tensor:
         pass
