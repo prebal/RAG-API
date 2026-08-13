@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from app.models.base import Base
 
@@ -9,10 +10,18 @@ class VectorEntry(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    document_source: Mapped[int] = mapped_column(
+    document_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("documents.id", ondelete="CASCADE")
     )
 
-    page_start: Mapped[int] = mapped_column(Integer)
+    document_source = relationship("Document", back_populates="text_chunks")
 
     page_start: Mapped[int] = mapped_column(Integer)
+
+    page_end: Mapped[int] = mapped_column(Integer)
+
+    chunk_index: Mapped[int] = mapped_column(Integer)
+
+    original_text: Mapped[str] = mapped_column(String)
+
+    embedding = mapped_column(Vector(384))

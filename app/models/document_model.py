@@ -24,3 +24,5 @@ class Document(Base):
     uploaded: Mapped[datetime] = mapped_column(DateTime)
 
     filepath: Mapped[str] = mapped_column(String)
+
+    text_chunks = relationship("VectorEntry", back_populates="document_source")
