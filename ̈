@@ -22,7 +22,7 @@ class DocumentProcessor:
         chunk_overlap: int,
     ) -> Generator[int, None, None]:
 
-        if not os.path.exists(pdf_filepath):
+        if not os.filepath.exists(pdf_filepath):
             raise FileNotFoundError()
 
         markdown_file = pymupdf4llm.to_markdown(doc=pdf_filepath, page_chunks=True)
@@ -37,7 +37,7 @@ class DocumentProcessor:
 
             tokenized_page = self.tokenizer(page_text)
 
-            for token, mask in zip(tokenized_page["input_ids"], tokenized_page["attention_mask"]):
+            for token, mask in tokenized_page:
                 buffer.append(token)
                 mask_buffer.append(mask)
                 page_buffer.append(page_metadata["page_number"])
@@ -58,7 +58,7 @@ class DocumentProcessor:
         if buffer:
             text_chunk = {
                 "tokenized_text": buffer,
-                "mask": mask_buffer,
+                "mask": maks_buffer,
                 "page_start": page_buffer[0],
                 "page_end": page_buffer[-1],
             }
@@ -70,14 +70,13 @@ class DocumentProcessor:
             for index, text_chunk in enumerate(
                 self.chunk_tokenize_pdf(
                     document_to_process.filepath,
+                    "sentence-transformers/all-MiniLM-L6-v2",
                     500,
                     50,
                 )
             ):
-
-                print(text_chunk)
-                embedded_text = embedding_service.embed_chunk(
-                    text_chunk["tokenized_text"], text_chunk["mask"]
+                embedded_text = embeddidng_serivce.embed_chunk(
+                    text_chunk.tokenized_text, text_chunk.mask
                 )  # Load the EmbeddingService
                 detokenized_text = self.tokenizer.decode(text_chunk["tokenized_text"])
 

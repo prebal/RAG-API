@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.auth_model import User
 from app.repositories.auth_repository import UserRepository
-from app.schemas.auth_schema import LoginRequest, RegisterRequest
+from app.schemas.auth_schema import RegisterRequest
 from app.schemas.user_schema import ChangePasswordRequest, ChangeUsernameRequest
 from app.security.jwt_tokens import issue_jwt_token
 from app.security.password_hashing import hash_password, verify_password

@@ -25,6 +25,7 @@ if config.config_file_name is not None:
 from app.models.base import Base
 from app.models.auth_model import User
 from app.models.document_model import Document
+from app.models.vector_model import VectorEntry
 
 target_metadata = Base.metadata
 

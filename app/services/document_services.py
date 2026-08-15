@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import dict, Any
+from typing import Dict, Any
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 import os
@@ -9,6 +9,7 @@ from app.models.document_model import Document
 from app.services.document_processor import DocumentProcessor
 
 SUPPORTED_FORMATS = ["pdf", "txt", "docx"]
+document_processor = DocumentProcessor("sentence-transformers/all-MiniLM-L6-v2")
 
 
 class DocumentService:
@@ -16,14 +17,14 @@ class DocumentService:
         self.repository = repository
         self.storage_service = storage_service
 
-    def extract_metadata(self, uploaded_file: UploadFile) -> dict[str, Any]:
+    def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, Any]:
         metadata = {}
         metadata["size"] = uploaded_file.size
         metadata["file_format"] = str(uploaded_file.filename).split(".")[-1]
 
         return metadata
 
-    def process_document(
+    async def process_document(
         self, user: User, uploaded_file: UploadFile, db: Session
     ) -> None:
 
@@ -51,6 +52,8 @@ class DocumentService:
         )
 
         self.repository.create_document(document_to_write, db)
+
+        document_processor.process_embed_document(document_to_write, db)
 
     def remove_document(self, document_id: int, user_id: int, db: Session):
         filepath_to_remove = self.repository.delete_document(document_id, user_id, db)

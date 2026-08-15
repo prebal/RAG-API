@@ -1,4 +1,4 @@
-from typing import dict
+from typing import Dict
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -25,7 +25,7 @@ def about_me(current_user: User = Depends(get_current_user)) -> User:
 def delete_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, str]:
+) -> Dict[str, str]:
 
     raise NotImplementedError
 
@@ -35,7 +35,7 @@ def change_username(
     username_change_request: ChangeUsernameRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, str]:
+) -> Dict[str, str]:
 
     auth_service.check_and_change_username(current_user, username_change_request, db)
 
@@ -47,7 +47,7 @@ def change_password(
     password_change_request: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict[str, str]:
+) -> Dict[str, str]:
 
     auth_service.check_and_change_password(current_user, password_change_request, db)
 

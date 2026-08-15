@@ -13,9 +13,13 @@ dependencies = [
     "pgvector>=0.5.0",
     "psycopg>=3.3.4",
     "pyjwt>=2.13.0",
+    "pymupdf4llm>=1.28.2",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.32",
     "ruff>=0.16.2",
+    "sentence-transformers>=5.7.0",
     "sqlalchemy>=2.0.51",
+    "torch>=2.13.0",
+    "transformers>=5.15.0",
     "uvicorn>=0.51.0",
 ]
