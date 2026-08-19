@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -11,7 +12,11 @@ llm_service = LLMService("local", "llama3.2:1b")
 
 
 @llm_router.post("/ask_question")
-def ask_question(
+async def ask_question(
     llm_request: LLMRequest, current_user=Depends(get_current_user), db=Depends(get_db)
 ):
-    return llm_service.response(llm_request, current_user, db)
+
+    return StreamingResponse(
+        llm_service.response(llm_request, current_user, db),
+        media_type="text/event-stream",
+    )
