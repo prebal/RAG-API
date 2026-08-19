@@ -1,4 +1,5 @@
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletion
 from transformers import AutoTokenizer
 from app.services.embedding_service import EmbeddingService
 from app.repositories.vector_repository import VectorRepository
@@ -32,6 +33,7 @@ class LLMService:
         context = "\n\n".join([query.original_text for query, distance in best_queries])
 
         model_answer = await self.client.chat.completions.create(
+            stream=True,
             model=self.model_name,
             messages=[
                 {
@@ -46,9 +48,14 @@ class LLMService:
                 }
             ],
         )
+        # Curiously ollama fails to AsyncStream
+        if isinstance(model_answer, ChatCompletion):
+            non_async_content = model_answer.choices[0].message.content
+            if non_async_content:
+                yield f"data: {non_async_content}\n\n"
+        else:
+            async for stream_chunk in model_answer:
+                text_to_stream = stream_chunk.choices[0].delta.content
 
-        async for stream_chunk in model_answer:
-            text_to_stream = stream_chunk.choices[0].delta.content
-
-            if text_to_stream:
-                yield f"data: {text_to_stream}\n\n"
+                if text_to_stream:
+                    yield f"data: {text_to_stream}\n\n"
