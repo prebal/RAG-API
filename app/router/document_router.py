@@ -19,7 +19,7 @@ async def add_document(
     uploaded_file: UploadFile,
     current_user=Depends(get_current_user),
     db=Depends(get_db),
-    ) -> Dict[str, str]:
+) -> Dict[str, str]:
 
     await document_service.process_document(current_user, uploaded_file, db)
     return {"message": "Document was added successfully"}
@@ -30,7 +30,7 @@ def delete_document(
     request: DeleteDocumentRequest,
     current_user=Depends(get_current_user),
     db=Depends(get_db),
-    ) -> Dict[str, str]:
+) -> Dict[str, str]:
 
-    document_service.save_document_storage(request.document_id, current_user.id, db)
+    document_service.remove_document(request.document_id, current_user.id, db)
     return {"message": "Document was successfully removed"}

@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session
 from app.models.document_model import Document
 from app.models.vector_model import VectorEntry
 from app.services.embedding_service import EmbeddingService
+from app.repositories.vector_repository import VectorRepository
 
 embedding_service = EmbeddingService("sentence-transformers/all-MiniLM-L6-v2")
+vector_repository = VectorRepository()
 
 
 class DocumentProcessor:
@@ -37,7 +39,9 @@ class DocumentProcessor:
 
             tokenized_page = self.tokenizer(page_text)
 
-            for token, mask in zip(tokenized_page["input_ids"], tokenized_page["attention_mask"]):
+            for token, mask in zip(
+                tokenized_page["input_ids"], tokenized_page["attention_mask"]
+            ):
                 buffer.append(token)
                 mask_buffer.append(mask)
                 page_buffer.append(page_metadata["page_number"])
@@ -67,19 +71,21 @@ class DocumentProcessor:
     def process_embed_document(self, document_to_process: Document, db: Session):
 
         if document_to_process.document_type == "pdf":
+            embedding_entries_to_write_into_db = []
             for index, text_chunk in enumerate(
                 self.chunk_tokenize_pdf(
                     document_to_process.filepath,
-                    500,
-                    50,
+                    256,
+                    30,
                 )
             ):
-
                 print(text_chunk)
                 embedded_text = embedding_service.embed_chunk(
                     text_chunk["tokenized_text"], text_chunk["mask"]
                 )  # Load the EmbeddingService
-                detokenized_text = self.tokenizer.decode(text_chunk["tokenized_text"])
+                detokenized_text = self.tokenizer.decode(
+                    text_chunk["tokenized_text"], skip_special_tokens=True
+                )
 
                 token_chunk_to_write = VectorEntry(
                     document_source_id=document_to_process.id,
@@ -91,6 +97,8 @@ class DocumentProcessor:
                     embedding=embedded_text,
                 )
 
-                print(token_chunk_to_write)
+                embedding_entries_to_write_into_db.append(token_chunk_to_write)
 
-            # Write to vector_table possibly in some intelligent manner
+        vector_repository.create_vector(embedding_entries_to_write_into_db, db)
+
+        # Write to vector_table possibly in some intelligent manner

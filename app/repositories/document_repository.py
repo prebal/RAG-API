@@ -1,4 +1,3 @@
-
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -7,15 +6,28 @@ from app.models.document_model import Document
 
 
 class DocumentRepository:
-    def get_document(self, document_id: int, user_id: int, db: Session) -> Document | None:
-        query = select(Document).where(Document.id == document_id, Document.document_owner_id == user_id)
+    def get_document(
+        self, document_id: int, user_id: int, db: Session
+    ) -> Document | None:
+        query = select(Document).where(
+            Document.id == document_id, Document.document_owner_id == user_id
+        )
         return db.scalar(query)
+
+    def get_all_document_hashes(self, user_id, db: Session):
+        query = select(Document.document_hash).where(
+            Document.document_owner_id == user_id
+        )
+        return db.execute(query).scalars().all()
 
     def delete_document(self, document_id: int, user_id: int, db: Session) -> str:
         document_to_delete = self.get_document(document_id, user_id, db)
         if document_to_delete is None:
-            raise HTTPException(400, "You don't have authorization to delete document entry from database or the document doesn't exist")
-        
+            raise HTTPException(
+                400,
+                "You don't have authorization to delete document entry from database or the document doesn't exist",
+            )
+
         document_to_delete_filepath = document_to_delete.filepath
         db.delete(document_to_delete)
         db.commit()
@@ -25,5 +37,3 @@ class DocumentRepository:
         db.add(new_document)
         db.commit()
         db.refresh(new_document)
-
-        

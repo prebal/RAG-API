@@ -21,8 +21,10 @@ class Document(Base):
 
     document_size: Mapped[int] = mapped_column(Integer, nullable=False, unique=False)
 
+    document_hash: Mapped[str] = mapped_column(String, nullable=False, unique=False)
+
     uploaded: Mapped[datetime] = mapped_column(DateTime)
 
     filepath: Mapped[str] = mapped_column(String)
 
-    text_chunks = relationship("VectorEntry", back_populates="document_source")
+    text_chunks = relationship("VectorEntry", back_populates="document_source", cascade="all, delete-orphan")
