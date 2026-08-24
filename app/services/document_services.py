@@ -26,7 +26,7 @@ class DocumentService:
         return metadata
 
     async def generate_hash(self, uploaded_file: UploadFile):
-        sha256_hasher = hashlib.sha1()
+        sha256_hasher = hashlib.sha256()
         while chunk := await uploaded_file.read(1024**2):
             sha256_hasher.update(chunk)
 

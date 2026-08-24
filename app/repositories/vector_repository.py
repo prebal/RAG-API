@@ -1,7 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import List
-import torch
 
 from app.models.vector_model import VectorEntry
 from app.models.document_model import Document

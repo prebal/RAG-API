@@ -1,4 +1,6 @@
 from collections.abc import Generator
+from typing import Any
+
 from transformers import AutoTokenizer
 import pymupdf4llm
 import os
@@ -7,22 +9,22 @@ from sqlalchemy.orm import Session
 from app.models.document_model import Document
 from app.models.vector_model import VectorEntry
 from app.services.embedding_service import EmbeddingService
+from app.services.model_service import ModelService
 from app.repositories.vector_repository import VectorRepository
 
-embedding_service = EmbeddingService("sentence-transformers/all-MiniLM-L6-v2")
 vector_repository = VectorRepository()
 
 
 class DocumentProcessor:
-    def __init__(self, tokenizer_model_name: str) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_model_name)
+    def __init__(self, model_service: ModelService) -> None:
+        self.tokenizer = model_service.tokenizer
 
     def chunk_tokenize_pdf(
         self,
         pdf_filepath: str,
         chunk_size: int,
         chunk_overlap: int,
-    ) -> Generator[int, None, None]:
+    ) -> Generator[dict[str, Any]]:
 
         if not os.path.exists(pdf_filepath):
             raise FileNotFoundError()
@@ -79,7 +81,6 @@ class DocumentProcessor:
                     30,
                 )
             ):
-                print(text_chunk)
                 embedded_text = embedding_service.embed_chunk(
                     text_chunk["tokenized_text"], text_chunk["mask"]
                 )  # Load the EmbeddingService

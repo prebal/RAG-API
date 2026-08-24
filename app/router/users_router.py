@@ -17,7 +17,7 @@ auth_service = UserService(auth_repository)
 
 @user_router.get("/me", response_model=None)
 def about_me(current_user: User = Depends(get_current_user)) -> User:
-    # current_user.password_hash = "redacted password hash"
+    current_user.password_hash = "REDACTED"
     return current_user
 
 

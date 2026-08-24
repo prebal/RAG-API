@@ -17,11 +17,11 @@ class Document(Base):
 
     document_owner = relationship("User", back_populates="documents")
 
-    document_type: Mapped[str] = mapped_column(String, nullable=False, unique=False)
+    document_type: Mapped[str] = mapped_column(String, nullable=False)
 
-    document_size: Mapped[int] = mapped_column(Integer, nullable=False, unique=False)
+    document_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    document_hash: Mapped[str] = mapped_column(String, nullable=False, unique=False)
+    document_hash: Mapped[str] = mapped_column(String, nullable=False)
 
     uploaded: Mapped[datetime] = mapped_column(DateTime)
 

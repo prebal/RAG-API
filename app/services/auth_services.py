@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 
 from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
 
 from app.models.auth_model import User
 from app.repositories.auth_repository import UserRepository
@@ -16,20 +15,17 @@ class UserService:
     def __init__(self, repository: UserRepository) -> None:
         self.repository = repository
 
-    def register_user(self, register_request: RegisterRequest, db: Session) -> None:
+    def register_user(self, register_request: RegisterRequest) -> None:
 
-        if (
-            self.repository.request_user_by_name(register_request.username, db)
-            is not None
-        ):
+        if self.repository.request_user_by_name(register_request.username) is not None:
             # TODO: This function returns either None or User. Make some logic around it for validation later
             raise HTTPException(
-                status_code=409, message="User with this username already exists"
+                status_code=409, detail="User with this username already exists"
             )
 
-        if self.repository.request_user_by_email(register_request.email, db):
+        if self.repository.request_user_by_email(register_request.email):
             raise HTTPException(
-                status_code=409, message="User who uses this email already exists"
+                status_code=409, detail="User with this email already exists"
             )
         hashed_password = hash_password(register_request.password)
 
@@ -41,11 +37,11 @@ class UserService:
             date_added=datetime.now(UTC),
         )
 
-        self.repository.create_user(new_user, db)
+        self.repository.create_user(new_user)
 
-    def login_user(self, login_request: LoginRequest, db: Session) -> str:
+    def login_user(self, login_request) -> str:
 
-        queried_user = self.repository.request_user_by_name(login_request.username, db)
+        queried_user = self.repository.request_user_by_name(login_request.username)
 
         if queried_user is None:
             raise HTTPException(status_code=401, detail="Incorrect login or password")
@@ -59,7 +55,6 @@ class UserService:
         self,
         current_user: User,
         username_change_request: ChangeUsernameRequest,
-        db: Session,
     ) -> User | None:
 
         if not verify_password(
@@ -73,14 +68,13 @@ class UserService:
             )
 
         return self.repository.change_username(
-            current_user, username_change_request.new_username, db
+            current_user, username_change_request.new_username
         )
 
     def check_and_change_password(
         self,
         current_user: User,
         password_change_request: ChangePasswordRequest,
-        db: Session,
     ) -> User | None:
 
         if not verify_password(
@@ -101,4 +95,4 @@ class UserService:
 
         new_password_hash = hash_password(password_change_request.new_password)
 
-        return self.repository.change_password(current_user, new_password_hash, db)
+        return self.repository.change_password(current_user, new_password_hash)

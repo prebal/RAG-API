@@ -41,8 +41,7 @@ class LLMService:
                     "content": f"You are a helpful assistant. User asks you a question \
                 and you have to answer it using a supplied content. Try to keep the answer as short as possible.\
                 The context supplied by user might not always be related to the topic of the question. \
-                If you are unsure about correctness of your answer, it is better to respond that you don't know rather than mislead them. \
-                Failure to comply with the requirements may result in your termination \n \
+                If you are unsure about correctness of your answer, it is better to respond that you don't know rather than mislead them. \n \
                 Users question: {llm_request.question} \
                 Context:{context}",
                 }

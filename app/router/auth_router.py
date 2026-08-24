@@ -13,18 +13,16 @@ service = UserService(repository)
 
 
 @router.post("/register")
-def register(request: RegisterRequest, db: Session = Depends(get_db)):
+def register(request: RegisterRequest):
 
-    service.register_user(request, db)
+    service.register_user(request)
 
     return {"message": "Registration was successful"}
 
 
 @router.post("/login")
-def login(
-    request: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
-):
+def login(request: OAuth2PasswordRequestForm = Depends()):
 
-    issued_jwt_token = service.login_user(request, db)
+    issued_jwt_token = service.login_user(request)
 
     return LoginTokenResponse(access_token=issued_jwt_token, token_type="bearer")

@@ -1,11 +1,12 @@
 from typing import Dict, List
-from transformers import AutoModel
+from transformers import AutoModel, AutoTokenizer
 import torch
 
 
-class EmbeddingService:
-    def __init__(self, embedding_model: str):
-        self.embedding_model = AutoModel.from_pretrained(embedding_model)
+class ModelService:
+    def __init__(self, embedding_model_name: str):
+        self.embedding_model = AutoModel.from_pretrained(embedding_model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(embedding_model_name)
 
     def embed_tokens_input(self, inputs, mask):
 
