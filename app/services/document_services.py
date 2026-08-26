@@ -1,24 +1,24 @@
-from datetime import UTC, datetime
-from typing import Dict, Any
-from fastapi import UploadFile, HTTPException
-from sqlalchemy.orm import Session
-import os
+import asyncio
 import hashlib
+import os
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import HTTPException, UploadFile
 
 from app.models.auth_model import User
 from app.models.document_model import Document
-from app.services.document_processor import DocumentProcessor
 
 SUPPORTED_FORMATS = ["pdf", "txt", "docx"]
-document_processor = DocumentProcessor("sentence-transformers/all-MiniLM-L6-v2")
 
 
 class DocumentService:
-    def __init__(self, repository, storage_service):
+    def __init__(self, repository, storage_service, document_processor):
         self.repository = repository
         self.storage_service = storage_service
+        self.document_processor = document_processor
 
-    def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, Any]:
+    def extract_metadata(self, uploaded_file: UploadFile) -> dict[str, Any]:
         metadata = {}
         metadata["size"] = uploaded_file.size
         metadata["file_format"] = str(uploaded_file.filename).split(".")[-1].lower()
@@ -26,19 +26,19 @@ class DocumentService:
         return metadata
 
     async def generate_hash(self, uploaded_file: UploadFile):
-        sha256_hasher = hashlib.sha1()
+        sha256_hasher = hashlib.sha256()
         while chunk := await uploaded_file.read(1024**2):
             sha256_hasher.update(chunk)
 
         await uploaded_file.seek(0)
-        return sha256_hasher.hexdigest()
+        return str(sha256_hasher.hexdigest())
 
-    async def process_document(
-        self, user: User, uploaded_file: UploadFile, db: Session
-    ) -> None:
+    async def process_document(self, user: User, uploaded_file: UploadFile) -> None:
 
         document_hash = await self.generate_hash(uploaded_file)
-        document_hashes_per_user = self.repository.get_all_document_hashes(user.id, db)
+        document_hashes_per_user = await self.repository.get_all_document_hashes(
+            user.id
+        )
 
         if document_hash in document_hashes_per_user:
             raise HTTPException(status_code=422, detail="This document already exists")
@@ -68,10 +68,16 @@ class DocumentService:
             filepath=full_filepath,
         )
 
-        self.repository.create_document(document_to_write, db)
+        await self.repository.create_document(document_to_write)
 
-        document_processor.process_embed_document(document_to_write, db)
+        embedded_chunks: list[dict] = []
+        if document_to_write.document_type == "pdf":
+            embedded_chunks = await asyncio.to_thread(
+                self.document_processor.embed_pdf, document_to_write
+            )
 
-    def remove_document(self, document_id: int, user_id: int, db: Session):
-        filepath_to_remove = self.repository.delete_document(document_id, user_id, db)
+        await self.document_processor.persist_chunks(document_to_write, embedded_chunks)
+
+    async def remove_document(self, document_id: int, user_id: int):
+        filepath_to_remove = await self.repository.delete_document(document_id, user_id)
         self.storage_service.remove_document_storage(filepath_to_remove)

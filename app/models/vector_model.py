@@ -1,6 +1,6 @@
-from sqlalchemy import Boolean, Integer, String, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
