@@ -10,7 +10,7 @@ from alembic import context
 # access to the values within the .ini file in use.
 
 load_dotenv()
-url = f"postgresql+psycopg://{os.getenv("POSTGRES_USER")}:{os.getenv("POSTGRES_PASSWORD")}@localhost:5432/notebook"
+url = f"postgresql+psycopg://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@localhost:5432/notebook"
 
 config = context.config
 config.set_main_option("sqlalchemy.url", url)
@@ -66,7 +66,6 @@ def run_migrations_online() -> None:
 
     """
 
-    print(config.get_main_option("sqlachemy.url"))
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

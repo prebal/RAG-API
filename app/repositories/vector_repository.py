@@ -1,15 +1,16 @@
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-from typing import List
 
-from app.models.vector_model import VectorEntry
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.document_model import Document
+from app.models.vector_model import VectorEntry
 
 
 class VectorRepository:
-    def select_k_best_chunks(
-        self, embedded_question: list, user_id, db: Session, top_k=5
-    ):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def select_k_best_chunks(self, embedded_question: list, user_id, top_k=5):
         distances = VectorEntry.embedding.cosine_distance(embedded_question)
 
         query = (
@@ -20,10 +21,10 @@ class VectorRepository:
             .limit(top_k)
         )
 
-        return db.execute(query).all()
+        return (await self.db.execute(query)).all()
 
-    def create_vector(self, vectors_to_save: List[VectorEntry], db: Session) -> None:
+    async def create_vector(self, vectors_to_save: list[VectorEntry]) -> None:
         for vector_entry in vectors_to_save:
-            db.add(vector_entry)
+            self.db.add(vector_entry)
 
-        db.commit()
+        await self.db.commit()

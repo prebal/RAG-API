@@ -6,6 +6,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+# Import all model modules so their tables register on Base.metadata
+# before create_all runs (without this, refresh_tokens & co. never materialize).
+from app.models import (  # noqa: F401
+    auth_model,
+    document_model,
+    refresh_token_model,
+    vector_model,
+)
 from app.models.base import Base
 
 load_dotenv()

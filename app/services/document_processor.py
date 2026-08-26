@@ -1,23 +1,21 @@
+import os
 from collections.abc import Generator
 from typing import Any
 
-from transformers import AutoTokenizer
 import pymupdf4llm
-import os
-from sqlalchemy.orm import Session
 
 from app.models.document_model import Document
 from app.models.vector_model import VectorEntry
-from app.services.embedding_service import EmbeddingService
-from app.services.model_service import ModelService
 from app.repositories.vector_repository import VectorRepository
-
-vector_repository = VectorRepository()
+from app.services.model_service import ModelService
 
 
 class DocumentProcessor:
-    def __init__(self, model_service: ModelService) -> None:
-        self.tokenizer = model_service.tokenizer
+    def __init__(
+        self, model_service: ModelService, vector_repository: VectorRepository
+    ) -> None:
+        self.model_service = model_service
+        self.vector_repository = vector_repository
 
     def chunk_tokenize_pdf(
         self,
@@ -39,7 +37,7 @@ class DocumentProcessor:
             page_text = page.get("text", "")
             page_metadata = page.get("metadata", "")
 
-            tokenized_page = self.tokenizer(page_text)
+            tokenized_page = self.model_service.tokenizer(page_text)
 
             for token, mask in zip(
                 tokenized_page["input_ids"], tokenized_page["attention_mask"]
@@ -70,36 +68,50 @@ class DocumentProcessor:
             }
             yield text_chunk
 
-    def process_embed_document(self, document_to_process: Document, db: Session):
+    def embed_pdf(self, document_to_process: Document):
+        chunks = []
+        for chunk_index, text_chunk in enumerate(
+            self.chunk_tokenize_pdf(
+                document_to_process.filepath,
+                256,
+                30,
+            )
+        ):
+            embedded_text = self.model_service.embed_chunk(
+                text_chunk["tokenized_text"], text_chunk["mask"]
+            )
 
-        if document_to_process.document_type == "pdf":
-            embedding_entries_to_write_into_db = []
-            for index, text_chunk in enumerate(
-                self.chunk_tokenize_pdf(
-                    document_to_process.filepath,
-                    256,
-                    30,
-                )
-            ):
-                embedded_text = embedding_service.embed_chunk(
-                    text_chunk["tokenized_text"], text_chunk["mask"]
-                )  # Load the EmbeddingService
-                detokenized_text = self.tokenizer.decode(
-                    text_chunk["tokenized_text"], skip_special_tokens=True
-                )
+            detokenized_text = self.model_service.tokenizer.decode(
+                text_chunk["tokenized_text"], skip_special_tokens=True
+            )
 
-                token_chunk_to_write = VectorEntry(
-                    document_source_id=document_to_process.id,
-                    document_source=document_to_process,
-                    page_start=text_chunk["page_start"],
-                    page_end=text_chunk["page_end"],
-                    chunk_index=index,
-                    original_text=detokenized_text,
-                    embedding=embedded_text,
-                )
+            chunks.append(
+                {
+                    "chunk_index": chunk_index,
+                    "page_start": text_chunk["page_start"],
+                    "page_end": text_chunk["page_end"],
+                    "original_text": detokenized_text,
+                    "embedded_text": embedded_text,
+                }
+            )
 
-                embedding_entries_to_write_into_db.append(token_chunk_to_write)
+        return chunks
 
-        vector_repository.create_vector(embedding_entries_to_write_into_db, db)
+    async def persist_chunks(
+        self, document_to_process: Document, chunks_with_embedding: list[dict]
+    ) -> None:
+        embedding_entries_to_write_into_db = []
+        for text_chunk in chunks_with_embedding:
+            token_chunk_to_write = VectorEntry(
+                document_source_id=document_to_process.id,
+                document_source=document_to_process,
+                page_start=text_chunk["page_start"],
+                page_end=text_chunk["page_end"],
+                chunk_index=text_chunk["chunk_index"],
+                original_text=text_chunk["original_text"],
+                embedding=text_chunk["embedded_text"],
+            )
 
-        # Write to vector_table possibly in some intelligent manner
+            embedding_entries_to_write_into_db.append(token_chunk_to_write)
+
+        await self.vector_repository.create_vector(embedding_entries_to_write_into_db)

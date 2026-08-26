@@ -11,3 +11,6 @@ wheels/
 
 # Files with secrets
 *.env 
+
+# Local user-upload storage
+storage/
