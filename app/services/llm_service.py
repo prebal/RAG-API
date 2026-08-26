@@ -30,9 +30,19 @@ class LLMService:
         )
 
         best_queries = await self.vector_repository.select_k_best_chunks(
-            embedded_question, current_user.id, 3
+            embedded_question, current_user.id, 10
         )
-        context = "\n\n".join([query.original_text for query, distance in best_queries])
+
+        if len(best_queries) <= 5:
+        context = "\n\n".join([query.original_text for query, distance in best_queries if distance < 0.8])
+        else:
+            original_text_chunk_list = [query.original_text for query, _ in best_queries]
+            reranker_result = await asyncio.to_thread(
+                    self.model_service.rerank_chunks,
+                    llm_request.question, 
+                    original_text_chunk_list,
+                    top_k = 5)
+            # TODO: Make a context out of it here
 
         model_answer = await self.client.chat.completions.create(
             stream=True,
