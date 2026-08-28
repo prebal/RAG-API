@@ -6,18 +6,47 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: notebook
-    ports:
-      - "5432:5432"
+    networks:
+      - db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: []
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   ollama:
-    image: ollama
-    container_name: ollama_service
+    build: 
+      dockerfile: ollama.dockerfile 
     volumes:
       - ollama_data:/root/.ollama
+    networks:
+      - ollama
+    healthcheck: 
+      test: ["ollama", "ps"]
+      interval: 30s
+      timeout: 1m
+      retries: 5
+      start_period: 1m
+
+  app:
+    build:
+      dockerfile: app.dockerfile
     ports:
-      - "11434:11434"
+      - "8000:8000"
+    networks:
+      - db
+      - ollama 
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    
+    health_check:
+      test: []
 
 volumes:
   postgres_data:
