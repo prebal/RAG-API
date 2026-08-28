@@ -7,7 +7,7 @@ Bug numbers (#1–#17) refer to the original codebase audit.
 
 ## 🔧 In progress (current work)
 
-_(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. Next up: portfolio polish track / remaining critical bugs `#5`, or pick a feature.)_
+_(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio polish track (tests / dockerize / README) or pick a feature.)_
 
 ---
 
@@ -17,7 +17,7 @@ _(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. N
 - [x] **`#2` `auth_services.login_user`**: annotated `OAuth2PasswordRequestForm` + import added — fixed by user, verified. ✅
 - [x] **`#3` `users_router.about_me`**: fixed by user — `UserPublicResponse` (id/username/email/verified/date_added) + `response_model=UserPublicResponse` + typed return. Runtime-verified: `GET /user/me` → 200 with exactly the 5 fields, no `password_hash`. ✅ (optional polish: add `model_config = ConfigDict(from_attributes=True)` so manual `UserPublicResponse.model_validate(orm_user)` also works outside FastAPI's response path, e.g. in tests)
 - [~] **`#4` `document_processor.process_embed_document`**: crash fixed 2026-08-25 — `embedded_chunks = []` guard + pdf-only embed; txt/docx uploads succeed with no chunks (no more `NameError`). Still no real txt/docx chunking: either narrow `SUPPORTED_FORMATS` to `["pdf"]` or implement it per the Ingestion & jobs feature item.
-- [ ] **`#5` Alembic baseline broken**: initial migration `a1aae69b5042` is empty; `users`/`documents` never created via migrations; `bc88487053a5` alters a nonexistent table. Re-baseline/squash migrations, then delete the import-time `Base.metadata.create_all(bind=engine)` from `app/database.py`.
+- [x] **`#5` Alembic baseline broken** — FIXED 2026-08-26 (user-driven): broken revisions deleted and replaced with single baseline `667bbda13c38_initial_commit.py` (users/documents/vector_table/refresh_tokens + `CREATE EXTENSION IF NOT EXISTS vector` + refresh_tokens via env.py model registration); env.py getter→setter fixed; import-time `create_all` removed from `app/database.py` (migrations are now the single source of schema truth). Verified on wiped DB: `alembic upgrade head` is the sole head, `alembic_version=667bbda13c38`, all 4 tables + `vector` extension present; app boot + register/login live-tested ✅.
 - [x] **`#6` `alembic/env.py:69`**: debug `print(config.get_main_option("sqlachemy.url"))` removed — fixed by user, verified. ✅
 - [x] **`#8` Event-loop blocking**: fixed 2026-08-25 — upload path offloads pure-CPU `embed_pdf` via `asyncio.to_thread` then persists on the main thread (`persist_chunks`); ask path offloads `embed_chunk` similarly. Live-verified: during a 22-page PDF embed, `GET /` latency stayed ~1–13 ms and 12 chunks persisted. ✅
 
@@ -39,6 +39,11 @@ _(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. N
 - [x] **`#12` Schema defaults**: both `LoginTokenResponse` and `RegisterRequest` now have clean required fields (`Field(max_length=…)`) — fixed by user, verified. ✅
 - [x] `auth_router` exports `auth_router` instead of bare `router` (renamed by user; `main.py` imports + mounts it correctly). ✅
 - [ ] REST nits (optional): `upload_document`/`delete_document` as `POST` → consider `DELETE /documents/{id}` conventions.
+
+### 🧱 Code-scan additions (from audit 2026-08-26)
+- [ ] **`storage_path` via Settings**: replace hardcoded `LOCAL_STORAGE_PATH = "storage/"` in `storage_service.py` with a Settings field (default `./storage`) — currently breaks if uvicorn runs from any other CWD, and will break inside Docker.
+- [ ] **`delete_document` FileNotFoundError tolerance**: mirror the delete_user loop's `except FileNotFoundError: pass` in `DocumentService.remove_document` so deleting a doc whose file was manually removed doesn't 500.
+- [ ] **Refresh `expires_at` DB enforcement**: `TokenRepository.find_active_token_by_hash` never consults `expires_at` (rotation leans only on the JWT claim). Add expiry check + optional periodic sweep of expired/revoked rows.
 
 ---
 
@@ -69,7 +74,7 @@ _(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. N
 
 ### Retrieval depth
 - [ ] **Hybrid search** (M): Postgres `tsvector` keyword search fused with pgvector results (RRF merge, ~40 lines, no new infra).
-- [ ] **Cross-encoder reranker** (S–M): `sentence-transformers` `CrossEncoder` rescores top-10 before LLM context; dep already present.
+- [x] **Cross-encoder reranker** (S–M) — implemented 2026-08-26: `ModelService.cross_encoder` (ms-marco-MiniLM-L-6-v2, lifespan-loaded); `LLMService` widens retrieval to top-10, offloaded `.rank()` → top-5, context from `["text"]` entries; static-verified. Smoke test pending (requires Ollama for true end-to-end).
 - [ ] **Batch embedding** (S): encode all chunks in one batched call — expect ~5–10× faster ingestion; good README metric.
 - [ ] **Multi-query retrieval** (M): LLM rewrites question into 2–3 sub-queries, retrieve+merge; entry-level agentic RAG.
 
@@ -79,7 +84,7 @@ _(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. N
 
 ### Platform & ops
 - [~] **`pydantic-settings` Settings module** (S): `app/settings.py` created, consumed by `get_llm_clients` ✅. Remaining: migrate leftover `os.getenv` callers (`app/database.py`, `jwt_tokens.py` SECRET_KEY/ALGO, `alembic/env.py`) onto `get_settings()` — do BEFORE dockerizing.
-- [ ] **Dockerization** (M): multi-stage Dockerfile (uv); compose with `db` + `app` + `ollama` service (init container pulls `llama3.2:1b`); healthchecks; `alembic upgrade head` as entrypoint — forcing function to fix `#5`.
+- [ ] **Dockerization** (M): multi-stage Dockerfile (uv); compose with `db` + `app` + `ollama` service (init container pulls `llama3.2:1b`); healthchecks; `alembic upgrade head` as entrypoint (baseline now live since `#5` is closed).
 - [x] **Refresh tokens** (M): access+refresh pair, `POST /auth/refresh` — **done 2026-08-25**, see 🔧 section for full status.
 - [ ] **Health & observability** (S–M): `/health` probing DB + Ollama; structured logging with request IDs; optional `/metrics`.
 
@@ -98,12 +103,11 @@ _(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. N
 
 ## 📌 Decisions pending (user)
 
-- [ ] `smoketest_user` test account left in dev DB from the E2E refactor verification (password: Test123!). Delete it (or keep for manual testing) — I'll remove on request.
-- [ ] Test artifacts in dev DB from the refresh-token gauntlet: user `gauntlet_1787659137` (password now `New123!`) + revoked rows in `refresh_tokens`. Cleanup at your discretion.
+- [x] `smoketest_user`/`gauntlet_*` test accounts + gauntlet refresh-token rows — MOOT as of 2026-08-26: dev DB was wiped and regenerated via `alembic upgrade head` (all test data gone). Fresh dev DB now contains only newly created users (e.g., `wipetst_*`).
 
-- [ ] Two dev PDFs in `storage/` are still tracked in git (`storage/` now ignored going forward). Untrack with `git rm --cached storage/...` when ready — do NOT commit that change without review.
+- [x] Two dev PDFs in `storage/` untracked (staged D by user) — commit to seal. `storage/` already ignored going forward via `.gitignore`.
 - [ ] README.md intentionally left empty — user has drafts on another machine.
-- [ ] Dev DB contains SHA-1 document hashes from before the sha256 fix — re-uploads won't dedupe against old rows (harmless in dev).
+- [x] Dev DB contained SHA-1 document hashes from before the sha256 fix — MOOT: dev DB wiped 2026-08-26 (no documents exist anymore).
 
 ---
 
@@ -114,6 +118,7 @@ _(Async DB migration completed 2026-08-25 — see ✅ Done and 🔵 checklist. N
 - Models: `User.documents` cascade (`all, delete-orphan`); redundant `unique=False` dropped; unused `Boolean` (vector_model) / `torch` (vector_repository) imports removed.
 - `app/database.py`: `async_engine`, `AsyncSessionLocal`, `async_get_db` added alongside the untouched sync fallback; verified live (`SELECT 1`) and ruff-clean.
 - settings module `app/settings.py` (pydantic-settings) created; `get_llm_clients` consumes it via `get_settings()`.
+- Alembic baseline IFM: broken version tree replaced with single squashed `667bbda13c38_initial_commit.py` (2026-08-26) — extension + all four tables + cascades; `create_all` removed from `database.py`; wipe-regenerate verification & live app smoke passed.
 - argon2 `verify_password` hardened (2026-08-25): `VerifyMismatchError` (wrong password) is now caught and returned `False` instead of exploding — fixes latent 500s across login/change-username/change-password/delete_user. `check_and_change_password`'s old try/except pattern simplified accordingly.
 - Async DB migration (2026-08-25): whole stack on `AsyncSession` via `async_get_db` providers; lifespan disposes `async_engine`; sync fallback intact. Live gauntlet passed: register/login/me/upload/dup-422/delete(+cascade, file unlink)/refresh-rotation/reuse-401/logout-401/parallel logins; zero `never awaited` warnings under `PYTHONASYNCIODEBUG=1`. Bugs fixed en route: async-`__init__` leftovers, double-`await`, awaited `db.add`, un-awaited internal calls, `await`-vs-paren precedence on `.execute(...).scalars()/.all()` chains, sync `storage_service` call awaited by mistake.
 - `#8` fix (2026-08-25): CPU embedding split (`embed_pdf` offloaded to thread pool via `asyncio.to_thread`, `persist_chunks` on main thread) + question-embed offload; `#4` crash neutralized as side effect; `docment_to_write` typo + unbound guard bug fixed in `document_services.py`.

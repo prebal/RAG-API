@@ -1,7 +1,5 @@
-import os
 from collections.abc import AsyncGenerator
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -14,19 +12,16 @@ from app.models import (  # noqa: F401
     refresh_token_model,
     vector_model,
 )
-from app.models.base import Base
+from app.settings import get_settings
 
-load_dotenv()
+settings = get_settings()
 
-_DATABASE_URL = f"postgresql+psycopg://{os.getenv("POSTGRES_USER")}:{os.getenv("POSTGRES_PASSWORD")}@localhost:5432/notebook"
+_DATABASE_URL = settings.database_url
 
 engine = create_engine(_DATABASE_URL)
 
-SessionLocal = sessionmaker(
-    bind=engine,
-    autoflush = False,
-    autocommit = False
-        )
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
 
 def get_db():
     db = SessionLocal()
