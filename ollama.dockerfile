@@ -1,4 +1,4 @@
-FROM ollama/ollama-0.33.0
+FROM ollama/ollama:0.33.0
 
 COPY shell_scripts/ollama_entrypoint.sh /ollama_entrypoint.sh
 

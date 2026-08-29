@@ -2,52 +2,71 @@ services:
   db:
     image: pgvector/pgvector:pg17-trixie
     container_name: notebook_db
+    env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: notebook
     networks:
       - db
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: []
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d notebook"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 10s
 
   ollama:
-    build: 
-      dockerfile: ollama.dockerfile 
+    build:
+      dockerfile: ollama.dockerfile
+    environment:
+      LLM_LOCAL_MODEL: ${LLM_LOCAL_MODEL:-llama3.2:1b}
     volumes:
       - ollama_data:/root/.ollama
     networks:
       - ollama
-    healthcheck: 
-      test: ["ollama", "ps"]
-      interval: 30s
+    expose:
+      - "11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q $$LLM_LOCAL_MODEL"]
+      interval: 1m
       timeout: 1m
       retries: 5
-      start_period: 1m
+      start_period: 2m
 
   app:
     build:
       dockerfile: app.dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: notebook
+      LLM_LOCAL_BASE_URL: http://ollama:11434/v1
+      STORAGE: /app/storage
     ports:
       - "8000:8000"
     networks:
       - db
-      - ollama 
+      - ollama
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - storage_data:/app/storage
     depends_on:
       db:
         condition: service_healthy
       ollama:
         condition: service_healthy
-    
-    health_check:
-      test: []
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   ollama_data:
+  hf_cache:
+  storage_data:
+
+networks:
+  ollama:
+  db:
