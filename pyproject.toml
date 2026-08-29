@@ -1,7 +1,7 @@
 [project]
-name = "portoflio-project"
+name = "portfolio-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "Simple API for a "
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -25,3 +25,16 @@ dependencies = [
     "transformers>=5.15.0",
     "uvicorn>=0.51.0",
 ]
+
+[dependency-groups]
+dev = [
+    "types-aiofiles>=25.1.0.20260518",
+]
+
+[tool.mypy]
+python_version = "3.14"
+files = ["main.py"]
+
+[[tool.mypy.overrides]]
+module = "pymupdf4llm"
+ignore_missing_imports = true

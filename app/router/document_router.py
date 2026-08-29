@@ -1,8 +1,7 @@
-
+from app.models.auth_model import User
 from fastapi import APIRouter, Depends, UploadFile
 
 from app.dependencies import get_current_user, get_document_service
-from app.schemas.document_schema import DeleteDocumentRequest
 from app.services.document_services import DocumentService
 
 document_router = APIRouter(prefix="/documents")
@@ -11,7 +10,7 @@ document_router = APIRouter(prefix="/documents")
 @document_router.post("/upload_document")
 async def add_document(
     uploaded_file: UploadFile,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     document_service: DocumentService = Depends(get_document_service),
 ) -> dict[str, str]:
 
@@ -19,12 +18,12 @@ async def add_document(
     return {"message": "Document was added successfully"}
 
 
-@document_router.post("/delete_document")
+@document_router.delete("/delete_document/{document_id}")
 async def delete_document(
-    request: DeleteDocumentRequest,
-    current_user=Depends(get_current_user),
+    document_id: int,
+    current_user: User = Depends(get_current_user),
     document_service: DocumentService = Depends(get_document_service),
 ) -> dict[str, str]:
 
-    await document_service.remove_document(request.document_id, current_user.id)
+    await document_service.remove_document(document_id, current_user.id)
     return {"message": "Document was successfully removed"}

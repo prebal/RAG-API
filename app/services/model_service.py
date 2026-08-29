@@ -12,7 +12,9 @@ class ModelService:
         self.tokenizer = AutoTokenizer.from_pretrained(embedding_model_name)
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
-    def embed_tokens_input(self, inputs: List[int], mask: List[int]) -> List[float]:
+    def embed_tokens_input(
+        self, inputs: torch.Tensor, mask: torch.Tensor
+    ) -> List[float]:
 
         with torch.no_grad():
             model_output = self.embedding_model(
@@ -25,7 +27,7 @@ class ModelService:
         pooled_embedding = (embeddings * mask).sum(dim=1) / mask.sum(dim=0)
         return pooled_embedding.detach().reshape(-1).tolist()
 
-    def embed_chunk(self, tokens: List[int], mask: List[int]) -> List[float]:
+    def embed_chunk(self, tokens: torch.Tensor, mask: torch.Tensor) -> List[float]:
         return self.embed_tokens_input(tokens, mask)
 
     def rerank_chunks(

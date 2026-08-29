@@ -111,9 +111,11 @@ class UserService:
         active_entry = await self.token_repository.find_active_token_by_hash(
             old_refresh_token_hash, user_id
         )
+
         if active_entry is None:
             raise HTTPException(
-                status_code=401, detail="Refresh token revoked or unknown"
+                status_code=401,
+                detail="Refresh token has already been revoked or is unknown",
             )
 
         await self.token_repository.revoke_token(old_refresh_token_hash, user_id)

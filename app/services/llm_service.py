@@ -1,4 +1,5 @@
 import asyncio
+from typing import AsyncGenerator
 
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
@@ -20,7 +21,7 @@ class LLMService:
         self.model_name = model_name
         self.client = client
 
-    async def response(self, llm_request, current_user):
+    async def response(self, llm_request, current_user) -> AsyncGenerator[str]:
         tokenized_question = self.model_service.tokenizer(llm_request.question)
 
         embedded_question = await asyncio.to_thread(

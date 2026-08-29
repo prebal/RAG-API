@@ -7,7 +7,7 @@ Bug numbers (#1–#17) refer to the original codebase audit.
 
 ## 🔧 In progress (current work)
 
-_(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio polish track (tests / dockerize / README) or pick a feature.)_
+_(🔴 Critical bugs #1–#8 all closed; Docker stack operational (db + ollama + app entrypoint alembic-step). Next: compose leftovers (healthcheck probe verification, packaging commits), tests v1, README scaffold, mypy green, pyproject metadata.)_
 
 ---
 
@@ -29,7 +29,7 @@ _(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio
 - [x] `dependencies.get_current_user`: async + awaits repo via `AsyncSession` provider.
 - [x] Routers: switch `Depends(get_db)` → `Depends(async_get_db)` — done via the 4 repository providers in `dependencies.py`; `get_db` import removed from `dependencies.py`.
 - [x] `main.py` lifespan shutdown: `await async_engine.dispose()` after `yield`.
-- [x] Keep sync `get_db` intact — sync engine/session/`create_all` fallback retained in `app/database.py`.
+- [x] Keep sync `get_db` intact — sync engine/session fallback retained in `app/database.py`; DDL now exclusively via alembic (import-time `create_all` removed with `#5`).
 
 ---
 
@@ -41,9 +41,10 @@ _(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio
 - [ ] REST nits (optional): `upload_document`/`delete_document` as `POST` → consider `DELETE /documents/{id}` conventions.
 
 ### 🧱 Code-scan additions (from audit 2026-08-26)
-- [ ] **`storage_path` via Settings**: replace hardcoded `LOCAL_STORAGE_PATH = "storage/"` in `storage_service.py` with a Settings field (default `./storage`) — currently breaks if uvicorn runs from any other CWD, and will break inside Docker.
+- [x] **`storage_path` via Settings** — done: `storage_service` uses `settings.storage` (absolute via `PROJECT_ROOT_DIR` anchor; CWD-independent; docker-compose `/app/storage` volume supported via `STORAGE` env var).
 - [ ] **`delete_document` FileNotFoundError tolerance**: mirror the delete_user loop's `except FileNotFoundError: pass` in `DocumentService.remove_document` so deleting a doc whose file was manually removed doesn't 500.
 - [ ] **Refresh `expires_at` DB enforcement**: `TokenRepository.find_active_token_by_hash` never consults `expires_at` (rotation leans only on the JWT claim). Add expiry check + optional periodic sweep of expired/revoked rows.
+- [ ] ⚠️ **Ollama healthcheck probe**: compose now uses exec-form `["CMD", "ollama", "list", "|", "grep", "-q", "$$LLM_LOCAL_MODEL"]` — the `|` is literal argv in exec form and almost certainly breaks the probe (cobra errors on unknown args → ollama never `healthy` → app pinned by `depends_on`). VERIFY on next full boot; expected fix: `["CMD-SHELL", "ollama list | grep -q $$LLM_LOCAL_MODEL"]`.
 
 ---
 
@@ -52,6 +53,7 @@ _(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio
 - [~] **`#14` mypy CI**: empty leftover `.github/workflows/mypy.noyml` deleted by user ✅. Remaining: workflow runs `uv run mypy` with no args/config; add `[tool.mypy]` to `pyproject.toml` (target `app`, `main.py`) or fix the command.
 - [ ] Pre-existing ruff sweep: only style debt left — `typing.Dict`/`typing.List`→builtin generics (UP006/UP035 in `users_router`, `document_router`, `document_services`, `vector_repository`, `model_service`) + import sort in `vector_repository.py` (I001). Everything else lint-clean.
 - [ ] No tests exist. Add pytest + a few round-trips: register/login; upload→embed (use `dependency_overrides[get_model_service]` with a dummy model); delete_document; delete_user. CI job optional.
+- [ ] **pyproject metadata**: rename package `portoflio-project` → `notebooklm-rag` (fixes existing typo) and write a real description.
 
 ---
 
@@ -83,8 +85,8 @@ _(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio
 - [ ] **Background ingestion** (M): return `202 Accepted`, process via FastAPI `BackgroundTasks`; add `documents.status` (`processing/ready/failed`); properly resolves `#8` (event-loop blocking).
 
 ### Platform & ops
-- [~] **`pydantic-settings` Settings module** (S): `app/settings.py` created, consumed by `get_llm_clients` ✅. Remaining: migrate leftover `os.getenv` callers (`app/database.py`, `jwt_tokens.py` SECRET_KEY/ALGO, `alembic/env.py`) onto `get_settings()` — do BEFORE dockerizing.
-- [ ] **Dockerization** (M): multi-stage Dockerfile (uv); compose with `db` + `app` + `ollama` service (init container pulls `llama3.2:1b`); healthchecks; `alembic upgrade head` as entrypoint (baseline now live since `#5` is closed).
+- [~] **Settings migration**: `database.py` + `alembic/env.py` migrated onto `get_settings()` ✅ (settings compose the full `database_url` via env parts). Only `jwt_tokens.py` (SECRET_KEY/ALGO at module level) remains — migrate onto `get_settings()` before docker secrets move.
+- [~] **Dockerization** (M) — stack locally operational as of 2026-08-29 (db + ollama w/ pull-entrypoint + app w/ alembic-uvicorn entrypoint, healthchecked deps, 4 named volumes, `.dockerignore` shielding secrets). Leftovers: ollama healthcheck probe verification (see 🧱 warning bullet); commit untracked `app.dockerfile` + seal old `dockerfile` deletion; app-side health endpoint; uv/ollama image version pins.
 - [x] **Refresh tokens** (M): access+refresh pair, `POST /auth/refresh` — **done 2026-08-25**, see 🔧 section for full status.
 - [ ] **Health & observability** (S–M): `/health` probing DB + Ollama; structured logging with request IDs; optional `/metrics`.
 
@@ -122,5 +124,6 @@ _(All 🔴 Critical bugs #1–#8 closed as of 2026-08-26 ✅. Next up: portfolio
 - argon2 `verify_password` hardened (2026-08-25): `VerifyMismatchError` (wrong password) is now caught and returned `False` instead of exploding — fixes latent 500s across login/change-username/change-password/delete_user. `check_and_change_password`'s old try/except pattern simplified accordingly.
 - Async DB migration (2026-08-25): whole stack on `AsyncSession` via `async_get_db` providers; lifespan disposes `async_engine`; sync fallback intact. Live gauntlet passed: register/login/me/upload/dup-422/delete(+cascade, file unlink)/refresh-rotation/reuse-401/logout-401/parallel logins; zero `never awaited` warnings under `PYTHONASYNCIODEBUG=1`. Bugs fixed en route: async-`__init__` leftovers, double-`await`, awaited `db.add`, un-awaited internal calls, `await`-vs-paren precedence on `.execute(...).scalars()/.all()` chains, sync `storage_service` call awaited by mistake.
 - `#8` fix (2026-08-25): CPU embedding split (`embed_pdf` offloaded to thread pool via `asyncio.to_thread`, `persist_chunks` on main thread) + question-embed offload; `#4` crash neutralized as side effect; `docment_to_write` typo + unbound guard bug fixed in `document_services.py`.
+- Docker stack containerization (2026-08-29): db+ollama+app services with entrypoint `alembic upgrade head` + uvicorn host-flags, healthchecked dependencies, four named volumes; ollama env var unified to `LLM_LOCAL_MODEL`; in-container operation proven (compose-up demo).
 - Refresh tokens milestone (2026-08-25): stateful rotation + revocation shipped — `RefreshToken` model (sha256 hash, valid flag, expires_at), `TokenRepository`, service login/rotation/logout, `/auth/refresh` + `/auth/logout` routes, login ripple fix, confinement rule in `get_current_user`, `revoke_all_for_user` wired into `change_password`, `refresh_token_model.py` rename. Full live gauntlet passed. Optional flourish left: reuse-detection → mass-revoke on presented-revoked token.
 - ModelService + DI refactor (2026-08-24): `app/services/model_service.py` (single tokenizer+model, lifespan-loaded via `app.state`); providers centralized in `app/dependencies.py` (`get_user/document/vector_repository`, `get_user/document_service`, `get_document_processor`, `get_model_service`, `get_current_user`); routers freed of module-level chains; `embedding_service.py` deleted; `app/settings.py` (pydantic-settings) + `get_llm_clients` (lru_cached clients) + per-request `get_llm_service` resolver (no sessions in the singleton) + `LLMRequest.provider` (local/api selector). E2E verified: boot, register/409/login, 503 guard for unconfigured `api` provider.

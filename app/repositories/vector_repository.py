@@ -1,3 +1,4 @@
+from typing import List
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,10 +8,12 @@ from app.models.vector_model import VectorEntry
 
 
 class VectorRepository:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def select_k_best_chunks(self, embedded_question: list, user_id, top_k=5):
+    async def select_k_best_chunks(
+        self, embedded_question: list, user_id, top_k=5
+    ) -> List[VectorEntry]:
         distances = VectorEntry.embedding.cosine_distance(embedded_question)
 
         query = (

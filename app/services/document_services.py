@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import os
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Dict
 
 from fastapi import HTTPException, UploadFile
 
@@ -13,19 +13,19 @@ SUPPORTED_FORMATS = ["pdf", "txt", "docx"]
 
 
 class DocumentService:
-    def __init__(self, repository, storage_service, document_processor):
+    def __init__(self, repository, storage_service, document_processor) -> None:
         self.repository = repository
         self.storage_service = storage_service
         self.document_processor = document_processor
 
-    def extract_metadata(self, uploaded_file: UploadFile) -> dict[str, Any]:
+    def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, Any]:
         metadata = {}
         metadata["size"] = uploaded_file.size
         metadata["file_format"] = str(uploaded_file.filename).split(".")[-1].lower()
 
         return metadata
 
-    async def generate_hash(self, uploaded_file: UploadFile):
+    async def generate_hash(self, uploaded_file: UploadFile) -> str:
         sha256_hasher = hashlib.sha256()
         while chunk := await uploaded_file.read(1024**2):
             sha256_hasher.update(chunk)
@@ -78,6 +78,6 @@ class DocumentService:
 
         await self.document_processor.persist_chunks(document_to_write, embedded_chunks)
 
-    async def remove_document(self, document_id: int, user_id: int):
+    async def remove_document(self, document_id: int, user_id: int) -> None:
         filepath_to_remove = await self.repository.delete_document(document_id, user_id)
         self.storage_service.remove_document_storage(filepath_to_remove)

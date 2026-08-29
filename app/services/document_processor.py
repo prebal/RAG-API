@@ -1,6 +1,6 @@
 import os
 from collections.abc import Generator
-from typing import Any
+from typing import Any, Dict
 
 import pymupdf4llm
 
@@ -68,7 +68,7 @@ class DocumentProcessor:
             }
             yield text_chunk
 
-    def embed_pdf(self, document_to_process: Document):
+    def embed_pdf(self, document_to_process: Document) -> Dict[str, int | str]:
         chunks = []
         for chunk_index, text_chunk in enumerate(
             self.chunk_tokenize_pdf(
