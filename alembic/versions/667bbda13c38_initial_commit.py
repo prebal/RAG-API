@@ -12,6 +12,7 @@ from alembic import op
 import sqlalchemy as sa
 
 import pgvector
+import pgvector.sqlalchemy
 
 
 # revision identifiers, used by Alembic.

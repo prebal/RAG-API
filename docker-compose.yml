@@ -9,6 +9,8 @@ services:
       - db
     expose:
       - "5432"
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -34,7 +36,7 @@ services:
       interval: 1m
       timeout: 1m
       retries: 5
-      start_period: 2m
+      start_period: 10m
 
   app:
     build:

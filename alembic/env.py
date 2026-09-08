@@ -23,6 +23,10 @@ config.set_main_option("sqlalchemy.url", url)
 # Import all model modules so their tables register on Base.metadata
 # (side-effect imports — autogenerate needs every table visible).
 from app.models.base import Base
+from app.models.auth_model import User
+from app.models.document_model import Document
+from app.models.refresh_token_model import RefreshToken
+from app.models.vector_model import VectorEntry
 
 target_metadata = Base.metadata
 

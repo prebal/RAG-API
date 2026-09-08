@@ -9,6 +9,7 @@ echo "Waiting for ollamad to initialize..."
 while ! ollama list >/dev/null 2>&1; do
   sleep 1
 done
+echo "Ollamad initialized"
 
 MODEL="${LLM_LOCAL_MODEL:-llama3.2:1b}"
 
