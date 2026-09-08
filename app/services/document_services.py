@@ -70,11 +70,10 @@ class DocumentService:
 
         await self.repository.create_document(document_to_write)
 
-        embedded_chunks: list[dict] = []
-        if document_to_write.document_type == "pdf":
-            embedded_chunks = await asyncio.to_thread(
-                self.document_processor.embed_pdf, document_to_write
-            )
+        embedded_chunks = []
+        embedded_chunks = await asyncio.to_thread(
+            self.document_processor.embed_document, document_to_write
+        )
 
         await self.document_processor.persist_chunks(document_to_write, embedded_chunks)
 
