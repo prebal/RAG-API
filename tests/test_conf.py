@@ -1,5 +1,5 @@
 import pytest, uuid
-from fastapi import TestClient
+from fastapi.testclient import TestClient
 
 from main import app
 
@@ -17,3 +17,11 @@ def unique_user():
         "password": "12345",
         "email": f"{fictional_user}@t.dev",
     }
+
+
+@pytest.fixture
+def auth_headers(client, unique_user):
+    client.post("/auth/register", json=unique_user)
+    tokens = client.post("/auth/login", data=unique_user).json()
+
+    return {"Authorization": f"Bearer {tokens['access_token']}"}

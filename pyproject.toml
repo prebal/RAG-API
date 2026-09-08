@@ -1,7 +1,7 @@
 [project]
-name = "portfolio-project"
+name = "notebooklm-rag"
 version = "0.1.0"
-description = "Simple API for a "
+description = "Self-hosted NotebookLM-style RAG backend: upload documents, embed them into pgvector, and ask questions answered by a local LLM (Ollama) or any OpenAI-compatible API, streamed over SSE."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -23,6 +23,7 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "torch>=2.13.0",
     "transformers>=5.15.0",
+    "ty>=0.0.77",
     "uvicorn>=0.51.0",
 ]
 
@@ -31,10 +32,7 @@ dev = [
     "types-aiofiles>=25.1.0.20260518",
 ]
 
-[tool.mypy]
-python_version = "3.14"
-files = ["main.py"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
 
-[[tool.mypy.overrides]]
-module = "pymupdf4llm"
-ignore_missing_imports = true
