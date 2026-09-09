@@ -14,7 +14,7 @@ user_router = APIRouter(prefix="/user")
 
 
 @user_router.get("/me", response_model=UserPublicResponse)
-def about_me(current_user: User = Depends(get_current_user)) -> UserPublicResponse:
+def about_me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 

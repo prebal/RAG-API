@@ -1,8 +1,7 @@
 import asyncio
 import hashlib
-import os
 from datetime import UTC, datetime
-from typing import Any, Dict
+from typing import Dict
 
 from fastapi import HTTPException, UploadFile
 
@@ -18,11 +17,16 @@ class DocumentService:
         self.storage_service = storage_service
         self.document_processor = document_processor
 
-    def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, Any]:
+    def extract_metadata(self, uploaded_file: UploadFile) -> Dict[str, int | str]:
         metadata = {}
         metadata["size"] = uploaded_file.size
-        metadata["file_format"] = str(uploaded_file.filename).split(".")[-1].lower()
-
+        file_format = str(uploaded_file.filename).split(".")[-1].lower()
+        if file_format == "txt" or file_format == "md":
+            metadata["file_format"] = "txt"
+        elif file_format == "pdf":
+            metadata["file_format"] = "pdf"
+        else:
+            raise HTTPException(415, detail="Incorrect file format")
         return metadata
 
     async def generate_hash(self, uploaded_file: UploadFile) -> str:
@@ -47,16 +51,10 @@ class DocumentService:
 
         if document_metadata["file_format"] not in SUPPORTED_FORMATS:
             raise HTTPException(
-                status_code=422, detail="Document of this type is not supported"
+                status_code=415, detail="Document of this type is not supported"
             )
 
         full_filepath = await self.storage_service.save_document_storage(uploaded_file)
-
-        if not os.path.exists(full_filepath):
-            raise HTTPException(
-                status_code=500,
-                detail="Internal server error occured while writing file",
-            )
 
         document_to_write = Document(
             document_owner_id=user.id,

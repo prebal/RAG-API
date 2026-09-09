@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Dict
+
 from fastapi import FastAPI
 
 from app.database import async_engine
