@@ -1,12 +1,12 @@
 from functools import lru_cache
 
-from app.models.auth_model import User
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_get_db
+from app.models.auth_model import User
 from app.repositories.auth_repository import UserRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.token_repository import TokenRepository

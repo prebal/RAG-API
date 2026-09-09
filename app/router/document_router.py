@@ -1,7 +1,7 @@
-from app.models.auth_model import User
 from fastapi import APIRouter, Depends, UploadFile
 
 from app.dependencies import get_current_user, get_document_service
+from app.models.auth_model import User
 from app.services.document_services import DocumentService
 
 document_router = APIRouter(prefix="/documents")

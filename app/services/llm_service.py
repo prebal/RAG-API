@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
@@ -31,7 +31,7 @@ class LLMService:
         )
 
         best_queries = await self.vector_repository.select_k_best_chunks(
-            embedded_question, current_user.id, 10
+            embedded_question, current_user.id, 20
         )
 
         if len(best_queries) <= 5:

@@ -1,10 +1,10 @@
-import os
 import uuid
 from datetime import UTC, datetime, timedelta
-from app.settings import get_settings
 
 import jwt
 from fastapi import HTTPException
+
+from app.settings import get_settings
 
 settings = get_settings()
 

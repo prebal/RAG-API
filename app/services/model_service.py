@@ -1,7 +1,8 @@
-from typing import List, Dict
+from typing import Dict, List
+
 import torch
-from transformers import AutoModel, AutoTokenizer
 from sentence_transformers import CrossEncoder
+from transformers import AutoModel, AutoTokenizer
 
 
 class ModelService:

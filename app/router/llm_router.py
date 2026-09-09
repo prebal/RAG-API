@@ -1,8 +1,8 @@
-from app.models.auth_model import User
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.dependencies import get_current_user, get_llm_service
+from app.models.auth_model import User
 from app.schemas.llm_schema import LLMRequest
 from app.services.llm_service import LLMService
 
