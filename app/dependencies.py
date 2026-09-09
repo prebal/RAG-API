@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from app.models.auth_model import User
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from openai import AsyncOpenAI
@@ -83,7 +84,7 @@ def get_document_service(
 async def get_current_user(
     token: str = Depends(oauth2_token_scheme),
     user_repository: UserRepository = Depends(get_user_repository),
-):
+) -> User:
     decoded_jwt_token = decode_jwt_token(token)
     if decoded_jwt_token["type"] != "access":
         raise HTTPException(401, "Incorrect validation token supplied.")

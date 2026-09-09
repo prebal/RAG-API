@@ -1,6 +1,6 @@
 import os
 from collections.abc import Generator
-from typing import Any
+from typing import Any, Dict, List
 
 import pymupdf4llm
 
@@ -29,7 +29,7 @@ class DocumentProcessor:
 
         markdown_file = pymupdf4llm.to_markdown(doc=pdf_filepath, page_chunks=True)
 
-        buffer = []
+        text_buffer = []
         mask_buffer = []
         page_buffer = []
 
@@ -42,41 +42,89 @@ class DocumentProcessor:
             for token, mask in zip(
                 tokenized_page["input_ids"], tokenized_page["attention_mask"]
             ):
-                buffer.append(token)
+                text_buffer.append(token)
                 mask_buffer.append(mask)
                 page_buffer.append(page_metadata["page_number"])
 
-                if len(buffer) == chunk_size:
-                    text_chunk = {
-                        "tokenized_text": buffer,
+                if len(text_buffer) == chunk_size:
+                    yield {
+                        "tokenized_text": text_buffer,
                         "mask": mask_buffer,
                         "page_start": page_buffer[0],
                         "page_end": page_buffer[-1],
                     }
-                    yield text_chunk
 
-                    buffer = buffer[-chunk_overlap:]
+                    text_buffer = text_buffer[-chunk_overlap:]
                     mask_buffer = mask_buffer[-chunk_overlap:]
                     page_buffer = page_buffer[-chunk_overlap:]
 
-        if buffer:
-            text_chunk = {
-                "tokenized_text": buffer,
+        if text_buffer:
+            yield {
+                "tokenized_text": text_buffer,
                 "mask": mask_buffer,
                 "page_start": page_buffer[0],
                 "page_end": page_buffer[-1],
             }
-            yield text_chunk
 
-    def embed_pdf(self, document_to_process: Document):
+    def chunk_tokenize_txt(
+        self, txt_filepath: str, chunk_size: int, chunk_overlap: int
+    ) -> Generator[Dict[str, Any]]:
+
+        if not os.path.exists(txt_filepath):
+            raise FileNotFoundError()
+
+        with open(file=txt_filepath, encoding="utf-8", mode="r") as txt_file:
+            txt_file_content = txt_file.readlines()
+
+        text_buffer = []
+        mask_buffer = []
+        line_buffer = []
+
+        for line_index, line in enumerate(txt_file_content):
+            tokenized_line = self.model_service.tokenizer(line)
+            for token, mask in zip(
+                tokenized_line["input_ids"], tokenized_line["attention_mask"]
+            ):
+                text_buffer.append(token)
+                mask_buffer.append(mask)
+                line_buffer.append(line_index)
+
+                if len(text_buffer) == chunk_size:
+                    yield {
+                        "tokenized_text": text_buffer,
+                        "mask": mask_buffer,
+                        "page_start": line_buffer[0],
+                        "page_end": line_buffer[-1],
+                    }
+
+                    text_buffer = text_buffer[-chunk_overlap:]
+                    mask_buffer = mask_buffer[-chunk_overlap:]
+                    line_buffer = line_buffer[-chunk_overlap:]
+
+        if text_buffer:
+            yield {
+                "tokenized_text": text_buffer,
+                "mask": mask_buffer,
+                "page_start": line_buffer[0],
+                "page_end": line_buffer[-1],
+            }
+
+    def embed_document(
+        self, document_to_process: Document
+    ) -> List[Dict[str, int | str]]:
         chunks = []
-        for chunk_index, text_chunk in enumerate(
-            self.chunk_tokenize_pdf(
-                document_to_process.filepath,
-                256,
-                30,
+        if document_to_process.document_type == "pdf":
+            chunk_generator = self.chunk_tokenize_pdf(
+                document_to_process.filepath, 256, 30
             )
-        ):
+        elif document_to_process.document_type == "txt":
+            chunk_generator = self.chunk_tokenize_txt(
+                document_to_process.filepath, 256, 30
+            )
+        else:
+            raise NotImplementedError
+
+        for chunk_index, text_chunk in enumerate(chunk_generator):
             embedded_text = self.model_service.embed_chunk(
                 text_chunk["tokenized_text"], text_chunk["mask"]
             )

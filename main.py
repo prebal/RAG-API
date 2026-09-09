@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-
+from typing import Dict
 from fastapi import FastAPI
 
 from app.database import async_engine
@@ -27,5 +27,5 @@ app.include_router(llm_router)
 
 
 @app.get("/")
-def root():
+def root() -> Dict[str, str]:
     return {"message": "API is running"}

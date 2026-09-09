@@ -1,3 +1,4 @@
+from app.models.auth_model import User
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
@@ -12,8 +13,8 @@ llm_router = APIRouter(prefix="/llm")
 async def ask_question(
     llm_request: LLMRequest,
     llm_service: LLMService = Depends(get_llm_service),
-    current_user=Depends(get_current_user),
-):
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
     return StreamingResponse(
         llm_service.response(llm_request, current_user),
         media_type="text/event-stream",
