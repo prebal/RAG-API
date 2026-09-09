@@ -62,6 +62,12 @@ services:
       ollama:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -X GET localhost:8000/"]
+      interval: 1m
+      timeout: 1m
+      retries: 10
+      start_period: 1m
 
 volumes:
   postgres_data:
