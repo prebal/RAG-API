@@ -10,14 +10,9 @@ OpenAI-compatible API — with answers **streamed over SSE**.
 ![PostgreSQL](https://img.shields.io/badge/Postgres-pgvector-336791)
 ![Ruff](https://img.shields.io/badge/lint-ruff-green)
 
-> Demo GIF in progress — the Quickstart below works today.
-
 ---
 
-## Why this project stands out
-
-Most portfolio RAG demos stop at "fastapi + openai call." This one is built around
-a few deliberately engineered foundations:
+## Project features
 
 - **Async-native data path** — end-to-end `AsyncSession` (SQLAlchemy 2.0) with all
   blocking CPU work (PDF chunking, transformer embeddings, cross-encoder reranking)
@@ -67,8 +62,7 @@ flowchart LR
 
 ## Quickstart
 
-Requirements: Docker + Docker Compose. Nothing else — the app, database, vector
-store, and LLM all come up as one stack.
+Requirements: Docker + Docker Compose only and .env file. 
 
 ```bash
 git clone <repo-url> && cd notebooklm-rag
@@ -80,15 +74,15 @@ Minimal `.env` (see full table below):
 
 ```bash
 POSTGRES_USER=admin
-POSTGRES_PASSWORD=change-me
-SECRET_KEY=$(openssl rand -hex 32)
+POSTGRES_PASSWORD= # Generated via $(openssl rand -base64 20)
+SECRET_KEY= # Generated via $(openssl rand -hex 32)
 ```
 
-⚠️ **First boot downloads models** — Ollama pulls `llama3.2:1b` (~1.3 GB) and the
+⚠️ ** On a first boot all the needed models are downloaded, even if the user plans to use only LLM models accessible via API** — Ollama pulls `llama3.2:1b` (~1.3 GB) and the
 Hugging Face embedding + reranker models are cached (~0.5 GB). Expect a few minutes
-on cold start; every subsequent `up` starts instantly from named volumes.
+on cold start; every subsequent `up` starts instantly from named volumes. The models are sufficiently small so it shouldn't take much time given your network bandwith is sufficient and shouldn't be computationally demanding either.
 
-Then, the whole story in four calls:
+The API can be accessed via curl:
 
 ```bash
 # register
@@ -112,51 +106,52 @@ curl -N -X POST localhost:8000/llm/ask_question \
   -d '{"question":"What does the paper say about X?","provider":"local"}'
 ```
 
-Interactive API exploration: <http://localhost:8000/docs>
+Alternatively, an interactive API exploration via fastapi integrated docs is possible too: <http://localhost:8000/docs>
 
 ## Authentication model
 
-Two tokens, two lifetimes, deliberately asymmetric:
+The authentication model utilizes two token types: 
 
 | Token | Lifetime | Storage / properties |
 |---|---|---|
-| `access_token` | 30 min | Standard HS256 JWT, every request's `Authorization: Bearer` |
-| `refresh_token` | 14 days | Issued only at login, **single-use**: every refresh mints a new pair and revokes the old; DB stores only its SHA-256 hash plus a validity flag |
+| `access_token` | 30 min | Standard HS256 JWT, every request's `Authorization: Bearer`. Not tracked by database. |
+| `refresh_token` | 14 days | Issued only at login, **single-use**: every refresh mints a new pair and revokes the old; Tracked by database and stores only its SHA-256 hash plus a validity flag |
 
-Rotation happens server-side in one atomic path: decode → type-check → hash-lookup →
+Rotation happens server-side in one go: decode → type-check → hash-lookup →
 revoke old → reissue pair. Logout revokes. Changing the password revokes **all** of a
 user's refresh tokens. `DELETE /user/delete_user` requires the account password and
 cascades both DB rows/documents/vectors **and** the user's files on disk.
 
-## The RAG pipeline (one upload to answer)
+## The RAG pipeline
 
-1. **Parse** – `pymupdf4llm` converts PDFs to markdown page chunks (text or docx
-   support is on the roadmap).
-2. **Chunk** – each page is tokenized and split into 256-token chunks with 30-token
-   overlap, tracking page ranges for provenance.
+0. **Download source documents**: Documents uploaded by user are checked for 
+1. **Parse** – `pymupdf4llm` converts PDFs to markdown chunks for each page. TXT or MD files are parsed via pythons IO module line by line directly to chunker.
+2. **Chunk** – each page/line is tokenized and split into 256-token chunks with 30-token
+   overlap, tracking page ranges for provenance. Chunkers are naive and don't take sentence semantics into account.
 3. **Embed** – `sentence-transformers/all-MiniLM-L6-v2` vectors (384-dim), computed
-   in a thread pool, written to `vector_table` (pgvector).
-4. **Retrieve** – question embedded with the same model; **cosine-similarity top-10**
-    scoped to the requesting user.
-5. **Rerank** – `cross-encoder/ms-marco-MiniLM-L-6-v2` rescores candidates and keeps
+   in a thread pool, written to a vector table (pgvector extension).
+4. **Retrieve** question embedded with the same model 
+    * A **cosine-similarity top-20** is used if number of documents and/or chunks is sufficiently large (>5), 
+    * A **cosine-similarity top-5** retrieval is used when few documents and/or chunks were supplemented, followed by similarity score cut-off
+5. **Rerank (conditional)** – `cross-encoder/ms-marco-MiniLM-L-6-v2` rescores candidates and keeps
    the top-5 as prompt context.
 6. **Answer** – a local `llama3.2:1b` (via Ollama) or any OpenAI-compatible API
    responds, streamed over `text/event-stream`.
 
-## API surface
+## Methods implemented in API
 
 | Method | Route | Purpose |
 |---|---|---|
 | `POST` | `/auth/register` | create account (username/email/password) |
 | `POST` | `/auth/login` | OAuth2 form login → access + refresh pair |
 | `POST` | `/auth/refresh` | rotate refresh token, get a fresh pair |
-| `POST` | `/auth/logout` | revoke a refresh token |
+| `POST` | `/auth/logout` | revokes a refresh token |
 | `GET` | `/user/me` | current user profile (whitelist of 5 fields) |
 | `POST` | `/user/change_username` | password-verified rename |
 | `POST` | `/user/change_password` | rotates all sessions |
 | `DELETE` | `/user/delete_user` | password-verified account deletion incl. files |
 | `POST` | `/documents/upload_document` | store + chunk + embed a PDF |
-| `POST` | `/documents/delete_document` | remove document, its chunks, its file |
+| `DELETE` | `/documents/delete_document` | remove document, its chunks, its file |
 | `POST` | `/llm/ask_question` | RAG answer, streamed (provider: `local`/`api`) |
 
 ## Configuration
@@ -177,16 +172,14 @@ docker-compose (with `POSTGRES_HOST=db`, `LLM_LOCAL_BASE_URL=http://ollama:11434
 ## Development status
 
 - **Lint**: `ruff check` green-configured (CI workflow in `.github/workflows/`).
-- **Type checks**: `mypy` config in `pyproject.toml`; workflow active, strictness
-  growing incrementally (see TODO `#14`).
-- **Tests**: `tests/` suite starting now; CI job with a postgres service container
-  follows in the same wave.
+- **Type checks**: `mypy` configured in `pyproject.toml`; 
+- **Tests**: More and more tests (and more complex ones; `tests/`) are added as time passes.
+- **GitHub Actions**: Ruff, mypy and pytest are ran on each pull/merge request however they don't block neither since I change devices often and it spams a lot. 
 - **Docker**: `compose`-based full stack with healthcheck-gated startup, named volumes
   for models and uploads, and an alembic-first entrypoint.
 
-Living backlog, with engineering notes on everything above: [`TODO.md`](TODO.md).
 
-## Roadmap
+## Features planned to be implemented in a forseeable future
 
 - **Grounded citations** — stream page-level sources (`page_start`/`page_end`
   already stored per chunk) alongside answers; LLM cites `[1]`.
@@ -195,8 +188,9 @@ Living backlog, with engineering notes on everything above: [`TODO.md`](TODO.md)
 - **Notebooks** — group sources into notebooks and scope Q&A per notebook.
 - **Per-source summaries** — one-click doc TL;DR on upload (the NotebookLM "Source
   Guide" touch).
-- **Retrieval depth** — batch embedding upload path, hybrid keyword+vector search,
-  multi-query retrieval.
+- **Retrieval depth** — batch embedding upload path, multi-query retrieval.
 - **Observability** — `/health` live/ready probes, structured request logging with
   request IDs, metrics endpoint.
-- **Quality hardening** — full `pytest` suite + coverage, mypy green, docker build CI.
+- **Quality hardening** — docker build CI.
+- **Fixing known bugs** — Uploading large files might lead to failure to process it. Very easy to perform a traversal attack. Ollama model might require a warm-up conversation, otherwise the model/API can't do async streaming, currently fixed by allowing sync streaming. Other bugs are waiting to be found. 
+Disclaimer: This README was generated by AI and was checked by repo maintainer
