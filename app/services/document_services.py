@@ -3,6 +3,10 @@ import hashlib
 from datetime import UTC, datetime
 from typing import Dict
 
+from app.repositories.document_repository import DocumentRepository
+from app.repositories.notebook_repository import NotebookRepository
+from app.services.storage_service import StorageService
+from api.service.document_processor import DocumentProcessor
 from fastapi import HTTPException, UploadFile
 
 from app.models.auth_model import User
@@ -12,8 +16,16 @@ SUPPORTED_FORMATS = ["pdf", "txt", "docx"]
 
 
 class DocumentService:
-    def __init__(self, repository, storage_service, document_processor) -> None:
-        self.repository = repository
+    def __init__(
+        self,
+        document_repository: DocumentRepository,
+        notebook_repository: NotebookRepository,
+        storage_service: StorageService,
+        document_processor: DocumentProcessor,
+    ) -> None:
+
+        self.document_repository = document_repository
+        self.notebook_repository = notebook_repository
         self.storage_service = storage_service
         self.document_processor = document_processor
 
@@ -37,7 +49,10 @@ class DocumentService:
         await uploaded_file.seek(0)
         return str(sha256_hasher.hexdigest())
 
-    async def process_document(self, user: User, uploaded_file: UploadFile) -> None:
+    async def process_document(
+        self, user: User, notebook_id: int, uploaded_file: UploadFile
+    ) -> None:
+        notebook_to_use = self.notebook_repository(notebook_id, user_id)
 
         document_hash = await self.generate_hash(uploaded_file)
         document_hashes_per_user = await self.repository.get_all_document_hashes(
@@ -64,6 +79,7 @@ class DocumentService:
             document_hash=document_hash,
             uploaded=datetime.now(UTC),
             filepath=full_filepath,
+            notebook_assigned=notebook_to_use,
         )
 
         await self.repository.create_document(document_to_write)
@@ -75,6 +91,10 @@ class DocumentService:
 
         await self.document_processor.persist_chunks(document_to_write, embedded_chunks)
 
-    async def remove_document(self, document_id: int, user_id: int) -> None:
-        filepath_to_remove = await self.repository.delete_document(document_id, user_id)
+    async def remove_document(
+        self, document_id: int, notebook_id: int, user_id: int
+    ) -> None:
+        filepath_to_remove = await self.repository.delete_document(
+            document_id, user_id, notebook_id
+        )
         self.storage_service.remove_document_storage(filepath_to_remove)

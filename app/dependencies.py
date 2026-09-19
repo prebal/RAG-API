@@ -11,6 +11,8 @@ from app.repositories.auth_repository import UserRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.token_repository import TokenRepository
 from app.repositories.vector_repository import VectorRepository
+from app.repositories.notebook_repository import NotebookRepository
+from app.repositories.conversation_repository import ConversationRepository
 from app.schemas.llm_schema import LLMRequest
 from app.security.jwt_tokens import decode_jwt_token
 from app.services.auth_services import UserService
@@ -33,21 +35,25 @@ def get_model_service(request: Request) -> ModelService:
 def get_user_repository(db: AsyncSession = Depends(async_get_db)) -> UserRepository:
     return UserRepository(db)
 
-
+# Token related repository
 def get_token_repository(db: AsyncSession = Depends(async_get_db)) -> TokenRepository:
     return TokenRepository(db)
 
-
-# Document related services
-def get_document_repository(
-    db: AsyncSession = Depends(async_get_db),
-) -> DocumentRepository:
+# Document related repository
+def get_document_repository(db: AsyncSession = Depends(async_get_db)) -> DocumentRepository:
     return DocumentRepository(db)
 
-
+# Vector repository
 def get_vector_repository(db: AsyncSession = Depends(async_get_db)) -> VectorRepository:
     return VectorRepository(db)
 
+# Notebook repository
+def get_notebook_repository(db: AsyncSession = Depends(async_get_db) -> NotebookRepository:
+    return NotebookRepository(db)
+
+# Conversations repository
+def get_conversations_repository(db: AsyncSession = Depends(async_get_db) -> ConversationRepository:
+    return ConversationRepository(db)
 
 def get_storage_service() -> StorageService:
     return StorageService()
@@ -85,7 +91,12 @@ async def get_current_user(
     token: str = Depends(oauth2_token_scheme),
     user_repository: UserRepository = Depends(get_user_repository),
 ) -> User:
-    decoded_jwt_token = decode_jwt_token(token)
+    
+    try:
+        decoded_jwt_token = decode_jwt_token(token)
+    except:
+        raise HTTPException(401, "No token has been supplied")
+
     if decoded_jwt_token["type"] != "access":
         raise HTTPException(401, "Incorrect validation token supplied.")
 
@@ -95,7 +106,7 @@ async def get_current_user(
     queried_user = await user_repository.request_user_by_id(
         int(decoded_jwt_token["sub"])
     )
-
+    # TODO: Move this if statement to a respective repository
     if queried_user is None:
         raise HTTPException(401, "Invalid user")
 
