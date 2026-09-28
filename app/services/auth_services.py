@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
@@ -23,6 +24,8 @@ from app.security.jwt_tokens import (
 from app.security.password_hashing import hash_password, verify_password
 from app.services.storage_service import StorageService
 
+service_logger = logging.getLogger("app")
+
 
 class UserService:
     def __init__(
@@ -38,6 +41,9 @@ class UserService:
         self.storage_service = storage_service
 
     async def register_user(self, register_request: RegisterRequest) -> None:
+        service_logger.info(
+            f"UserService.register_user: username={register_request.username}"
+        )
 
         if (
             await self.user_repository.request_user_by_name(register_request.username)
@@ -82,6 +88,9 @@ class UserService:
     async def login_user(
         self, login_request: OAuth2PasswordRequestForm
     ) -> dict[str, str]:
+        service_logger.info(
+            f"UserService.login_user: username={login_request.username}"
+        )
 
         queried_user = await self.user_repository.request_user_by_name(
             login_request.username
@@ -100,6 +109,8 @@ class UserService:
         return {"access_token": access_token, "refresh_token": refresh_token}
 
     async def token_rotation(self, old_refresh_token: str) -> dict[str, str]:
+        service_logger.info("UserService.token_rotation")
+
         decoded_old_refresh_token = decode_jwt_token(old_refresh_token)
 
         if decoded_old_refresh_token.get("type") != "refresh":
@@ -127,6 +138,8 @@ class UserService:
         return {"access_token": new_access_token, "refresh_token": new_refresh_token}
 
     async def logout_user(self, refresh_token: str) -> None:
+        service_logger.info("UserService.logout_user")
+
         decoded_refresh_token = decode_jwt_token(refresh_token)
 
         if decoded_refresh_token.get("type") != "refresh":
@@ -138,6 +151,10 @@ class UserService:
         )
 
     async def delete_user(self, delete_request: DeleteUserRequest, current_user: User):
+        service_logger.info(
+            f"UserService.delete_user: username={current_user.username}"
+        )
+
         if not verify_password(delete_request.password, current_user.password_hash):
             raise HTTPException(status_code=401, detail="Incorrect password entered")
 
@@ -158,6 +175,9 @@ class UserService:
         current_user: User,
         username_change_request: ChangeUsernameRequest,
     ) -> User | None:
+        service_logger.info(
+            f"UserService.check_and_change_username: username={current_user.username}"
+        )
 
         if not verify_password(
             username_change_request.password, current_user.password_hash
@@ -178,6 +198,9 @@ class UserService:
         current_user: User,
         password_change_request: ChangePasswordRequest,
     ) -> User | None:
+        service_logger.info(
+            f"UserService.check_and_change_password: username={current_user.username}"
+        )
 
         if not verify_password(
             password_change_request.old_password, current_user.password_hash

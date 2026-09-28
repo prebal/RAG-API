@@ -1,19 +1,19 @@
+import logging
+import time
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Dict
-import time
-import logging
-import uuid
 
 from fastapi import FastAPI, Request
 
 from app.database import async_engine
+from app.logging import request_id_var, setup_logging
 from app.router.auth_router import auth_router
 from app.router.document_router import document_router
 from app.router.llm_router import llm_router
+from app.router.notebook_router import notebook_router
 from app.router.users_router import user_router
 from app.services.model_service import ModelService
-from app.logging import setup_logging, request_id_var
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(document_router)
 app.include_router(llm_router)
+app.include_router(notebook_router)
 
 
 @app.middleware("http")
@@ -40,7 +41,7 @@ async def logger_middleware(request: Request, call_next):
     except KeyError:
         request_id = uuid.uuid4().hex[:12]
 
-    request_id = request_id_var.set(request_id)
+    request_id_var.set(request_id)
     response = await call_next(request)
 
     app_logger = logging.getLogger("app")
@@ -59,5 +60,5 @@ async def logger_middleware(request: Request, call_next):
 
 
 @app.get("/")
-def root() -> Dict[str, str]:
+def root() -> dict[str, str]:
     return {"message": "API is running"}

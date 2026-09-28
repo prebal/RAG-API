@@ -1,4 +1,3 @@
-from typing import Dict, List
 
 import torch
 from sentence_transformers import CrossEncoder
@@ -15,7 +14,7 @@ class ModelService:
 
     def embed_tokens_input(
         self, inputs: torch.Tensor, mask: torch.Tensor
-    ) -> List[float]:
+    ) -> list[float]:
 
         with torch.no_grad():
             model_output = self.embedding_model(
@@ -28,12 +27,12 @@ class ModelService:
         pooled_embedding = (embeddings * mask).sum(dim=1) / mask.sum(dim=0)
         return pooled_embedding.detach().reshape(-1).tolist()
 
-    def embed_chunk(self, tokens: torch.Tensor, mask: torch.Tensor) -> List[float]:
+    def embed_chunk(self, tokens: torch.Tensor, mask: torch.Tensor) -> list[float]:
         return self.embed_tokens_input(tokens, mask)
 
     def rerank_chunks(
-        self, query: str, original_text_chunk_list: List[str], top_k: int = 5
-    ) -> List[Dict[str, int | float | str]]:
+        self, query: str, original_text_chunk_list: list[str], top_k: int = 5
+    ) -> list[dict[str, int | float | str]]:
         return self.cross_encoder.rank(
             query, original_text_chunk_list, return_documents=True, top_k=top_k
         )

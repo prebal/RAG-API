@@ -1,9 +1,8 @@
-import logging
-from logging import Formatter, Filter
-from contextvars import ContextVar
 import json
+import logging
 import sys
-from app.settings import PROJECT_ROOT_DIR
+from contextvars import ContextVar
+from logging import Filter, Formatter
 
 request_id_var = ContextVar("request_id", default="-")
 
@@ -22,6 +21,7 @@ class JsonFormater(Formatter):
         log_entry = {
             "logger": record.name,
             "level": record.levelname,
+            "message": record.getMessage(),
             "request_id": getattr(record, "request_id", request_id_var.get()),
         }
 
@@ -46,7 +46,7 @@ def setup_logging(level=logging.INFO):
     logger = logging.getLogger()  # noqa
     stream_handler = logging.StreamHandler(stream=sys.stdout)
     # The option for a logs being directed into file is here.
-    # file_handler = logging.FileHandler(filename = PROJECT_ROOT_DIR + "/logs/app_log.txt")
+    # file_handler = logging.FileHandler(filename="logs/app_log.txt")
 
     app_logger = logging.getLogger("app")
     stream_handler.addFilter(RequestIDFilter())

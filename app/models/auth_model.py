@@ -35,8 +35,6 @@ class User(Base):
         "Notebook", back_populates="notebook_owner", cascade="all, delete-orphan"
     )
 
-    all_conversations_of_user = relationship(
-        "Conversation",
-        back_populates="conversation_owner",
-        cascade="all, delete-orphan",
+    messages_written = relationship(
+        "Message", back_populates="message_owner", cascade="all, delete-orphan"
     )

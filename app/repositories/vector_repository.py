@@ -1,4 +1,3 @@
-from typing import List, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,14 +11,17 @@ class VectorRepository:
         self.db = db
 
     async def select_k_best_chunks(
-        self, embedded_question: list, user_id: int, top_k: int = 5
-    ) -> List[Tuple[VectorEntry, float]]:
+        self, embedded_question: list, user_id: int, notebook_id: int, top_k: int = 5
+    ) -> list[tuple[VectorEntry, float]]:
         distances = VectorEntry.embedding.cosine_distance(embedded_question)
 
         query = (
             select(VectorEntry, distances.label("distance"))
             .join(Document)
-            .where(Document.document_owner_id == user_id)
+            .where(
+                Document.document_owner_id == user_id,
+                Document.notebook_id == notebook_id,
+            )
             .order_by(distances)
             .limit(top_k)
         )

@@ -22,7 +22,9 @@ config.set_main_option("sqlalchemy.url", url)
 # (side-effect imports — autogenerate needs every table visible).
 from app.models.base import Base
 from app.models.auth_model import User
+from app.models.message_model import Message
 from app.models.document_model import Document
+from app.models.notebook_model import Notebook
 from app.models.refresh_token_model import RefreshToken
 from app.models.vector_model import VectorEntry
 

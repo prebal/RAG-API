@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.refresh_token_model import RefreshToken
@@ -26,6 +26,7 @@ class TokenRepository:
         query = select(RefreshToken).where(
             RefreshToken.user_id == user_id,
             RefreshToken.token_hash == token_hash,
+            RefreshToken.expires_at > func.now(),
             RefreshToken.valid.is_(True),
         )
         return await self.db.scalar(query)

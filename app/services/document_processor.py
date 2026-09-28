@@ -1,6 +1,6 @@
 import os
 from collections.abc import Generator
-from typing import Any, Dict, List
+from typing import Any
 
 import pymupdf4llm
 
@@ -68,7 +68,7 @@ class DocumentProcessor:
 
     def chunk_tokenize_txt(
         self, txt_filepath: str, chunk_size: int, chunk_overlap: int
-    ) -> Generator[Dict[str, Any]]:
+    ) -> Generator[dict[str, Any]]:
 
         if not os.path.exists(txt_filepath):
             raise FileNotFoundError()
@@ -111,7 +111,7 @@ class DocumentProcessor:
 
     def embed_document(
         self, document_to_process: Document
-    ) -> List[Dict[str, int | str]]:
+    ) -> list[dict[str, int | str]]:
         chunks = []
         if document_to_process.document_type == "pdf":
             chunk_generator = self.chunk_tokenize_pdf(

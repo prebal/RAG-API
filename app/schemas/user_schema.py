@@ -9,7 +9,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 class ChangeUsernameRequest(BaseModel):
-    new_username: str = Field()
+    new_username: str = Field(max_length=30)
     password: str = Field()
 
 
