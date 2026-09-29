@@ -1,7 +1,9 @@
 from functools import lru_cache
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +11,8 @@ from app.database import async_get_db
 from app.models.auth_model import User
 from app.repositories.auth_repository import UserRepository
 from app.repositories.document_repository import DocumentRepository
+from app.repositories.messages_repository import MessageRepository
+from app.repositories.notebook_repository import NotebookRepository
 from app.repositories.token_repository import TokenRepository
 from app.repositories.vector_repository import VectorRepository
 from app.schemas.llm_schema import LLMRequest
@@ -18,6 +22,7 @@ from app.services.document_processor import DocumentProcessor
 from app.services.document_services import DocumentService
 from app.services.llm_service import LLMService
 from app.services.model_service import ModelService
+from app.services.notebook_service import NotebookService
 from app.services.storage_service import StorageService
 from app.settings import get_settings
 
@@ -30,35 +35,65 @@ def get_model_service(request: Request) -> ModelService:
 
 
 # User and auth related services and repositories
-def get_user_repository(db: AsyncSession = Depends(async_get_db)) -> UserRepository:
+def get_user_repository(
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> UserRepository:
     return UserRepository(db)
 
 
-def get_token_repository(db: AsyncSession = Depends(async_get_db)) -> TokenRepository:
+# Token related repository
+def get_token_repository(
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> TokenRepository:
     return TokenRepository(db)
 
 
-# Document related services
+# Document related repository
 def get_document_repository(
-    db: AsyncSession = Depends(async_get_db),
+    db: Annotated[AsyncSession, Depends(async_get_db)],
 ) -> DocumentRepository:
     return DocumentRepository(db)
 
 
-def get_vector_repository(db: AsyncSession = Depends(async_get_db)) -> VectorRepository:
+# Vector repository
+def get_vector_repository(
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> VectorRepository:
     return VectorRepository(db)
+
+
+# Notebook repository
+def get_notebook_repository(
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> NotebookRepository:
+    return NotebookRepository(db)
+
+
+# Messages repository
+def get_message_repository(
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> MessageRepository:
+    return MessageRepository(db)
 
 
 def get_storage_service() -> StorageService:
     return StorageService()
 
 
-# Assembled auth service (all dependencies defined above — Depends resolves at def time)
+def get_notebook_service(
+    notebook_repository: Annotated[NotebookRepository, Depends(get_notebook_repository)],
+    document_repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    storage_service: Annotated[StorageService, Depends(get_storage_service)],
+) -> NotebookService:
+    return NotebookService(notebook_repository, document_repository, storage_service)
+
+
+# Assembled auth service (all dependencies defined above - Depends resolves at def time)
 def get_user_service(
-    user_repository: UserRepository = Depends(get_user_repository),
-    token_repository: TokenRepository = Depends(get_token_repository),
-    document_repository: DocumentRepository = Depends(get_document_repository),
-    storage_service: StorageService = Depends(get_storage_service),
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
+    token_repository: Annotated[TokenRepository, Depends(get_token_repository)],
+    document_repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    storage_service: Annotated[StorageService, Depends(get_storage_service)],
 ) -> UserService:
     return UserService(
         user_repository, token_repository, document_repository, storage_service
@@ -66,26 +101,36 @@ def get_user_service(
 
 
 def get_document_processor(
-    model_service: ModelService = Depends(get_model_service),
-    vector_repository: VectorRepository = Depends(get_vector_repository),
+    model_service: Annotated[ModelService, Depends(get_model_service)],
+    vector_repository: Annotated[VectorRepository, Depends(get_vector_repository)],
 ) -> DocumentProcessor:
     return DocumentProcessor(model_service, vector_repository)
 
 
 def get_document_service(
-    document_repository: DocumentRepository = Depends(get_document_repository),
-    storage_service: StorageService = Depends(get_storage_service),
-    document_processor: DocumentProcessor = Depends(get_document_processor),
+    document_repository: Annotated[DocumentRepository, Depends(get_document_repository)],
+    notebook_repository: Annotated[NotebookRepository, Depends(get_notebook_repository)],
+    storage_service: Annotated[StorageService, Depends(get_storage_service)],
+    document_processor: Annotated[DocumentProcessor, Depends(get_document_processor)],
 ) -> DocumentService:
-    return DocumentService(document_repository, storage_service, document_processor)
+    return DocumentService(
+        document_repository, notebook_repository, storage_service, document_processor
+    )
 
 
 # Authenticated user resolution
 async def get_current_user(
-    token: str = Depends(oauth2_token_scheme),
-    user_repository: UserRepository = Depends(get_user_repository),
+    token: Annotated[str, Depends(oauth2_token_scheme)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> User:
-    decoded_jwt_token = decode_jwt_token(token)
+
+    try:
+        decoded_jwt_token = decode_jwt_token(token)
+    except ExpiredSignatureError:
+        raise HTTPException(401, "The token is expired")
+    except InvalidTokenError:
+        raise HTTPException(401, "The token is invalid")
+
     if decoded_jwt_token["type"] != "access":
         raise HTTPException(401, "Incorrect validation token supplied.")
 
@@ -95,7 +140,7 @@ async def get_current_user(
     queried_user = await user_repository.request_user_by_id(
         int(decoded_jwt_token["sub"])
     )
-
+    # TODO: Move this if statement to a respective repository
     if queried_user is None:
         raise HTTPException(401, "Invalid user")
 
@@ -136,9 +181,11 @@ def get_llm_clients() -> dict[str, tuple[AsyncOpenAI, str]]:
 
 def get_llm_service(
     llm_request: LLMRequest,
-    clients: dict[str, tuple[AsyncOpenAI, str]] = Depends(get_llm_clients),
-    model_service: ModelService = Depends(get_model_service),
-    vector_repository: VectorRepository = Depends(get_vector_repository),
+    clients: Annotated[dict[str, tuple[AsyncOpenAI, str]], Depends(get_llm_clients)],
+    model_service: Annotated[ModelService, Depends(get_model_service)],
+    vector_repository: Annotated[VectorRepository, Depends(get_vector_repository)],
+    message_repository: Annotated[MessageRepository, Depends(get_message_repository)],
+    notebook_repository: Annotated[NotebookRepository, Depends(get_notebook_repository)],
 ) -> LLMService:
     entry = clients.get(llm_request.provider)
     if entry is None:
@@ -152,4 +199,6 @@ def get_llm_service(
         model_name=model_name,
         model_service=model_service,
         vector_repository=vector_repository,
+        message_repository=message_repository,
+        notebook_repository=notebook_repository,
     )

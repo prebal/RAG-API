@@ -1,7 +1,7 @@
 from test_conf import client, unique_user, auth_headers
 
 
-def get_root(client):
+def test_get_root(client):
     response = client.get("/")
     assert response.status_code == 200
 
@@ -135,3 +135,5 @@ def test_change_password_identical_passwords(client, unique_user, auth_headers):
     )
     assert response.status_code == 422
     assert response.json() == {"detail": "Old and new passwords are identical"}
+
+

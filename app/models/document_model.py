@@ -27,4 +27,12 @@ class Document(Base):
 
     filepath: Mapped[str] = mapped_column(String)
 
-    text_chunks = relationship("VectorEntry", back_populates="document_source", cascade="all, delete-orphan")
+    notebook_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("notebooks.id", ondelete="CASCADE"), nullable=True
+    )
+
+    notebook_assigned = relationship("Notebook", back_populates="documents_saved")
+
+    text_chunks = relationship(
+        "VectorEntry", back_populates="document_source", cascade="all, delete-orphan"
+    )

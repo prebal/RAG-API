@@ -30,3 +30,11 @@ class User(Base):
     issued_refresh_tokens = relationship(
         "RefreshToken", back_populates="owner", cascade="all, delete-orphan"
     )
+
+    notebooks_owned = relationship(
+        "Notebook", back_populates="notebook_owner", cascade="all, delete-orphan"
+    )
+
+    messages_written = relationship(
+        "Message", back_populates="message_owner", cascade="all, delete-orphan"
+    )

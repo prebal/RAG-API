@@ -1,10 +1,13 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.dependencies import get_current_user, get_llm_service
 from app.models.auth_model import User
-from app.schemas.llm_schema import LLMRequest
+from app.schemas.llm_schema import LLMRequest, GetChatHistoryRequest
 from app.services.llm_service import LLMService
+from app.models.message_model import Message
 
 llm_router = APIRouter(prefix="/llm")
 
@@ -12,10 +15,19 @@ llm_router = APIRouter(prefix="/llm")
 @llm_router.post("/ask_question")
 async def ask_question(
     llm_request: LLMRequest,
-    llm_service: LLMService = Depends(get_llm_service),
-    current_user: User = Depends(get_current_user),
+    llm_service: Annotated[LLMService, Depends(get_llm_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> StreamingResponse:
     return StreamingResponse(
-        llm_service.response(llm_request, current_user),
+        llm_service.generate_response(llm_request, current_user),
         media_type="text/event-stream",
     )
+
+
+@llm_router.post("/get_chat_history")
+async def get_chat_history(
+    chat_history_request: GetChatHistoryRequest,
+    llm_service: Annotated[LLMService, Depends(get_llm_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[dict[str, str]]:
+    return await llm_service.get_chat_history(chat_history_request, current_user)
