@@ -13,7 +13,7 @@ from app.models.notebook_model import Notebook
 from app.repositories.messages_repository import MessageRepository
 from app.repositories.notebook_repository import NotebookRepository
 from app.repositories.vector_repository import VectorRepository
-from app.schemas.llm_schema import LLMRequest, GetChatHistoryRequest
+from app.schemas.llm_schema import GetChatHistoryRequest, LLMRequest
 from app.services.model_service import ModelService
 
 service_logger = logging.getLogger("app")

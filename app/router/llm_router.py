@@ -5,9 +5,8 @@ from fastapi.responses import StreamingResponse
 
 from app.dependencies import get_current_user, get_llm_service
 from app.models.auth_model import User
-from app.schemas.llm_schema import LLMRequest, GetChatHistoryRequest
+from app.schemas.llm_schema import GetChatHistoryRequest, LLMRequest
 from app.services.llm_service import LLMService
-from app.models.message_model import Message
 
 llm_router = APIRouter(prefix="/llm")
 
