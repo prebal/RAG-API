@@ -24,6 +24,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      POSTGRES_USER: postgres_test
+      POSTGRES_PASSWORD: postgres_test_password
+      POSTGRES_DB: notebook_test
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      SECRET_KEY: ci-test-key-definitely-not-the-one-in-production
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
