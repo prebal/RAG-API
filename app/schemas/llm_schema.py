@@ -12,5 +12,5 @@ class LLMRequest(BaseModel):
 class GetChatHistoryRequest(BaseModel):
     notebook_name: str = Field(max_length=255)
     # Let's assume the indexing starts from zero
-    history_start: int
-    history_end: int
+    history_start: int = Field(ge=0)
+    history_end: int = Field(ge=0)

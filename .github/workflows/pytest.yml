@@ -1,0 +1,52 @@
+name: Pytest
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    name: CI for testing (Pytest)
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: pgvector/pgvector:pg17-trixie
+        env:
+          POSTGRES_USER: postgres_test
+          POSTGRES_PASSWORD: postgres_test_password
+          POSTGRES_DB: notebook_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres_test -d postgres_test_password"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_USER: postgres_test
+      POSTGRES_PASSWORD: postgres_test_password
+      POSTGRES_DB: notebook_test
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      SECRET_KEY: ci-test-key-definitely-not-the-one-in-production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: uv setup
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install python
+        run: uv python install 3.14
+
+      - name: Sync packages
+        run: uv sync --locked
+
+      - name: Sync database
+        run: uv run alembic upgrade head
+
+      - name: Run pytest
+        run: uv run pytest
