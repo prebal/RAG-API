@@ -174,30 +174,33 @@ class LLMService:
 
         await self.message_repository.create_message(new_message)
 
-    async def get_chat_history(
-        self, chat_history_request: GetChatHistoryRequest, current_user: User
-    ) -> list[dict[str, str]]:
-        if chat_history_request.history_start > chat_history_request.history_end:
-            raise HTTPException(
-                422,
-                detail="The range for subselecting messages for this chat history is invalid.",
-            )
-
-        queried_notebook = await self.notebook_repository.get_notebook_by_name(
-            chat_history_request.notebook_name, current_user.id
+async def get_chat_history(
+    chat_history_request: GetChatHistoryRequest,
+    current_user: User,
+    message_repository: MessageRepository,
+    notebook_repository: NotebookRepository,
+) -> list[dict[str, str]]:
+    if chat_history_request.history_start > chat_history_request.history_end:
+        raise HTTPException(
+            422,
+            detail="The range for subselecting messages for this chat history is invalid.",
         )
-        if queried_notebook is None:
-            raise HTTPException(
-                400,
-                detail="The notebook doesn't exist or you don't have the authorization to use it",
-            )
 
-        subselected_message_entries = (
-            await self.message_repository.get_all_messages_by_notebook_id(
-                queried_notebook.id, current_user.id, chat_history_request.history_end
-            )
-        )[chat_history_request.history_start :]
-        return [
-            {message_entry[0]: message_entry[1]}
-            for message_entry in subselected_message_entries
-        ]
+    queried_notebook = await notebook_repository.get_notebook_by_name(
+        chat_history_request.notebook_name, current_user.id
+    )
+    if queried_notebook is None:
+        raise HTTPException(
+            400,
+            detail="The notebook doesn't exist or you don't have the authorization to use it",
+        )
+
+    subselected_message_entries = (
+        await message_repository.get_all_messages_by_notebook_id(
+            queried_notebook.id, current_user.id, chat_history_request.history_end
+        )
+    )[chat_history_request.history_start :]
+    return [
+        {"role": message_entry[1], "content": message_entry[0]}
+        for message_entry in subselected_message_entries
+    ]

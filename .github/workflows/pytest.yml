@@ -6,8 +6,23 @@ on:
 
 jobs:
   pytest:
-    name: CI for testing
+    name: CI for testing (Pytest)
     runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: pgvector/pgvector:pg17-trixie
+        env:
+          POSTGRES_USER: postgres_test
+          POSTGRES_PASSWORD: postgres_test_password
+          POSTEGRES_DB: notebook_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres_test -d postgres_test_password"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout repository
@@ -21,6 +36,9 @@ jobs:
 
       - name: Sync packages
         run: uv sync --locked
+
+      - name: Sync database
+        run: uv run alembic upgrade head
 
       - name: Run pytest
         run: uv run pytest
