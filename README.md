@@ -1,5 +1,7 @@
 # notebooklm-rag
 
+Documentation is outdated. I am going to have to let clanker redo it anytime soon. 
+
 Self-hosted, NotebookLM-style backend: upload documents, embed them into PostgreSQL
 with **pgvector**, and ask questions answered by a **local LLM (Ollama)** — or any
 OpenAI-compatible API — with answers **streamed over SSE**.
