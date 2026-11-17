@@ -3,8 +3,6 @@ services:
     image: pgvector/pgvector:pg17-trixie
     container_name: notebook_db
     env_file: .env
-    environment:
-      POSTGRES_DB: notebook
     networks:
       - db
     expose:
@@ -41,6 +39,7 @@ services:
   app:
     build:
       dockerfile: app.dockerfile
+    container_name: app
     env_file: .env
     environment:
       POSTGRES_HOST: db
@@ -48,9 +47,10 @@ services:
       POSTGRES_DB: notebook
       LLM_LOCAL_BASE_URL: http://ollama:11434/v1
       STORAGE: /app/storage
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     networks:
+      - app
       - db
       - ollama
     volumes:
@@ -63,11 +63,36 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -X GET localhost:8000/"]
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/'')"',
+        ]
       interval: 1m
       timeout: 1m
       retries: 10
       start_period: 1m
+
+  nginx:
+    container_name: nginx_container
+    build:
+      dockerfile: nginx.dockerfile
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - app
+    ports:
+      - "80:80"
+
+  prometheus:
+    container_name: prometheus_container
+    image: prom/prometheus
+    networks:
+      - app
+      - prometheus_grafana
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
 
 volumes:
   postgres_data:
@@ -78,3 +103,5 @@ volumes:
 networks:
   ollama:
   db:
+  app:
+  prometheus_grafana:
